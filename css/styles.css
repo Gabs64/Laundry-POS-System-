@@ -136,36 +136,200 @@ img {
   object-fit: cover;
 }
 
-.login-page-body, .pos-body, .admin-body {
+.pos-body, .admin-body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-.pos-app-wrapper {
+/* =========================================================
+   LOGIN & PORTAL LANDING STYLES
+   ========================================================= */
+.login-page-body {
+  min-height: 100vh;
   width: 100vw;
-  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: #0b1329;
+  background-image: 
+    radial-gradient(circle at 50% 15%, rgba(2, 132, 199, 0.22) 0%, transparent 60%),
+    radial-gradient(circle at 80% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 10% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.login-backdrop {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: auto;
+}
+
+.login-glass-card {
+  width: 100%;
+  background: rgba(23, 37, 84, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: var(--radius-xl);
+  padding: 2.25rem 2rem;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.7),
+    0 0 35px rgba(2, 132, 199, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.brand-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.15rem auto;
+  box-shadow: 0 10px 25px rgba(2, 132, 199, 0.45);
+}
+
+.brand-badge .brand-icon,
+.brand-badge svg {
+  width: 32px;
+  height: 32px;
+  color: #ffffff;
+}
+
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
+  line-height: 1.25;
+}
+
+.brand-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Login Form Elements */
+.login-form {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: 1.1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.form-group label svg,
+.form-group label i {
+  width: 14px;
+  height: 14px;
+  color: #38bdf8;
+}
+
+.input-with-icon {
+  position: relative;
+  width: 100%;
+}
+
+.input-with-icon input {
+  width: 100%;
+  height: 48px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  padding: 0 1rem;
+  font-size: 0.95rem;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.input-with-icon input:focus {
+  border-color: #38bdf8;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+.input-with-icon input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Direct Access & Demo Logins */
+.demo-accounts-box {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.demo-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+}
+
+.demo-title svg,
+.demo-title i {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
 }
 
 .portal-launch-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .portal-launch-card {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  padding: 0.75rem 0.85rem;
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
   text-decoration: none;
   color: var(--text-primary);
+  min-width: 0;
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
@@ -175,19 +339,19 @@ img {
 }
 
 .cashier-card:hover {
-  border-color: var(--success);
-  background: var(--success-light);
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .admin-card:hover {
-  border-color: var(--primary);
-  background: var(--primary-light);
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(2, 132, 199, 0.14);
 }
 
 .launch-icon {
   width: 38px;
   height: 38px;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -195,32 +359,172 @@ img {
 }
 
 .cashier-card .launch-icon {
-  background: var(--success-light);
-  color: var(--success);
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
 }
 
 .admin-card .launch-icon {
-  background: var(--primary-light);
-  color: var(--primary);
+  background: rgba(2, 132, 199, 0.18);
+  color: #38bdf8;
+}
+
+.launch-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .launch-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
 .launch-text strong {
-  font-size: 0.85rem;
-  line-height: 1.2;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .launch-text small {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Demo Credential Chips */
+.demo-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.demo-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.18s ease;
+}
+
+.demo-chip:hover {
+  background: rgba(51, 65, 85, 0.7);
+  border-color: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
+}
+
+.role-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.role-badge.admin {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.role-badge.cashier {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.user-meta {
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+/* Toast Notification Styles */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1.15rem;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #1e293b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: toastSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.25s ease;
+  pointer-events: auto;
+}
+
+.toast svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.toast-success {
+  background: rgba(6, 78, 59, 0.95);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #a7f3d0;
+}
+
+.toast-danger {
+  background: rgba(127, 29, 29, 0.95);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+}
+
+.toast-info {
+  background: rgba(12, 74, 110, 0.95);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #bae6fd;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-glass-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .portal-launch-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .text-success { color: var(--success) !important; }
