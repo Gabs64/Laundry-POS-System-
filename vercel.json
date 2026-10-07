@@ -1,5 +1,7 @@
 {
   "cleanUrls": true,
+  "buildCommand": "echo 'Deploying static site'",
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/pos", "destination": "/pos.html" },
     { "source": "/admin", "destination": "/admin.html" }
