@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Portal - AQUA FRESH LAUNDRY POS</title>
+  <title>Admin Portal - Brand Name POS</title>
   <meta name="description" content="Dedicated Laundry & Dry Cleaning Store Management Dashboard.">
 
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+    rel="stylesheet">
 
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -18,10 +21,11 @@
 
   <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body class="admin-body">
 
   <div class="admin-layout">
-    
+
     <!-- Admin Sidebar Navigation -->
     <aside class="admin-sidebar">
       <div class="sidebar-header">
@@ -30,7 +34,7 @@
             <i data-lucide="droplets"></i>
           </div>
           <div>
-            <h3 class="admin-store-name" id="admin-store-name">AQUA FRESH LAUNDRY</h3>
+            <h3 class="admin-store-name" id="admin-store-name">Brand Name</h3>
             <span class="admin-badge">Admin Portal</span>
           </div>
         </div>
@@ -78,7 +82,8 @@
       </nav>
 
       <div class="sidebar-footer">
-        <a href="pos.html" class="btn btn-secondary btn-block mb-2" target="_blank" title="Open Cashier Site in New Tab">
+        <a href="pos.html" class="btn btn-secondary btn-block mb-2" target="_blank"
+          title="Open Cashier Site in New Tab">
           <i data-lucide="external-link"></i> Launch Cashier POS
         </a>
         <button class="btn btn-danger btn-block btn-logout" onclick="AdminSite.confirmLogout()">
@@ -89,7 +94,7 @@
 
     <!-- Admin Main Content Area -->
     <div class="admin-main">
-      
+
       <!-- Top Bar -->
       <header class="admin-topbar">
         <div class="topbar-left">
@@ -101,7 +106,8 @@
             <i data-lucide="calendar"></i>
             <span id="admin-clock-display">Today</span>
           </div>
-          <button type="button" class="btn-icon-nav btn-icon-only" onclick="AdminSite.toggleTheme()" title="Toggle Theme">
+          <button type="button" class="btn-icon-nav btn-icon-only" onclick="AdminSite.toggleTheme()"
+            title="Toggle Theme">
             <i data-lucide="moon" id="admin-theme-icon"></i>
           </button>
           <div class="user-profile-badge">
@@ -116,10 +122,10 @@
 
       <!-- Tab Content Views -->
       <div class="admin-content-body">
-        
+
         <!-- 1. DASHBOARD TAB -->
         <div id="tab-dashboard" class="tab-pane active">
-          
+
           <!-- Key Laundry Metrics Grid -->
           <div class="metrics-grid">
             <div class="metric-card card-revenue">
@@ -129,7 +135,8 @@
               <div class="metric-content">
                 <span class="metric-label">TODAY'S LAUNDRY SALES</span>
                 <h2 class="metric-value" id="kpi-today-sales">₱0.00</h2>
-                <span class="metric-trend positive" id="kpi-sales-trend"><i data-lucide="trending-up"></i> Live revenue</span>
+                <span class="metric-trend positive" id="kpi-sales-trend"><i data-lucide="trending-up"></i> Live
+                  revenue</span>
               </div>
             </div>
 
@@ -162,7 +169,8 @@
               <div class="metric-content">
                 <span class="metric-label">SUPPLIES ALERT</span>
                 <h2 class="metric-value text-danger" id="kpi-low-stock-count">0</h2>
-                <button type="button" class="btn-link-action" onclick="AdminPanel.switchTab('inventory', { filter: 'low' })">
+                <button type="button" class="btn-link-action"
+                  onclick="AdminPanel.switchTab('inventory', { filter: 'low' })">
                   Check Supplies &rarr;
                 </button>
               </div>
@@ -171,7 +179,7 @@
 
           <!-- Dashboard Two-Column Visuals -->
           <div class="dashboard-grid-2col mt-4">
-            
+
             <!-- Left: Recent Sales & Claim Feed -->
             <div class="dashboard-panel">
               <div class="panel-header">
@@ -232,13 +240,18 @@
             <div class="toolbar-left">
               <div class="search-box-wrapper mini">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="admin-laundry-search" placeholder="Search customer, phone, or Claim #..." oninput="AdminPanel.filterLaundryTable()">
+                <input type="text" id="admin-laundry-search" placeholder="Search customer, phone, or Claim #..."
+                  oninput="AdminPanel.filterLaundryTable()">
               </div>
               <div class="btn-group">
-                <button class="btn btn-secondary active" id="btn-adm-lnd-all" onclick="AdminPanel.filterLaundryStatus('ALL')">All</button>
-                <button class="btn btn-secondary" id="btn-adm-lnd-active" onclick="AdminPanel.filterLaundryStatus('ACTIVE')">In-Progress</button>
-                <button class="btn btn-secondary" id="btn-adm-lnd-ready" onclick="AdminPanel.filterLaundryStatus('READY_FOR_PICKUP')">Ready ✅</button>
-                <button class="btn btn-secondary" id="btn-adm-lnd-claimed" onclick="AdminPanel.filterLaundryStatus('CLAIMED')">Claimed 🧺</button>
+                <button class="btn btn-secondary active" id="btn-adm-lnd-all"
+                  onclick="AdminPanel.filterLaundryStatus('ALL')">All</button>
+                <button class="btn btn-secondary" id="btn-adm-lnd-active"
+                  onclick="AdminPanel.filterLaundryStatus('ACTIVE')">In-Progress</button>
+                <button class="btn btn-secondary" id="btn-adm-lnd-ready"
+                  onclick="AdminPanel.filterLaundryStatus('READY_FOR_PICKUP')">Ready ✅</button>
+                <button class="btn btn-secondary" id="btn-adm-lnd-claimed"
+                  onclick="AdminPanel.filterLaundryStatus('CLAIMED')">Claimed 🧺</button>
               </div>
             </div>
             <div class="toolbar-right">
@@ -277,12 +290,15 @@
             <div class="toolbar-left">
               <div class="search-box-wrapper mini">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="admin-product-search" placeholder="Search service name, SKU, or category..." oninput="AdminPanel.filterProductsTable()">
+                <input type="text" id="admin-product-search" placeholder="Search service name, SKU, or category..."
+                  oninput="AdminPanel.filterProductsTable()">
               </div>
-              <select id="admin-product-category-filter" class="form-select mini" onchange="AdminPanel.filterProductsTable()">
+              <select id="admin-product-category-filter" class="form-select mini"
+                onchange="AdminPanel.filterProductsTable()">
                 <option value="">All Categories</option>
               </select>
-              <select id="admin-product-status-filter" class="form-select mini" onchange="AdminPanel.filterProductsTable()">
+              <select id="admin-product-status-filter" class="form-select mini"
+                onchange="AdminPanel.filterProductsTable()">
                 <option value="">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -322,7 +338,8 @@
         <div id="tab-categories" class="tab-pane">
           <div class="section-toolbar">
             <div class="toolbar-left">
-              <p class="text-muted">Organize services and add-ons (Wash & Fold, Dry Cleaning, Steam Press, Bulky Care, Supplies).</p>
+              <p class="text-muted">Organize services and add-ons (Wash & Fold, Dry Cleaning, Steam Press, Bulky Care,
+                Supplies).</p>
             </div>
             <div class="toolbar-right">
               <button type="button" class="btn btn-primary" onclick="AdminPanel.openCategoryModal()">
@@ -338,14 +355,15 @@
 
         <!-- 5. SUPPLIES INVENTORY TAB -->
         <div id="tab-inventory" class="tab-pane">
-          
+
           <!-- Low Stock Banner Alert -->
           <div class="alert-banner warning-banner" id="inventory-low-stock-banner" style="display:none;">
             <div class="alert-content">
               <i data-lucide="alert-octagon"></i>
               <div>
                 <h4 id="inventory-alert-title">Low Supplies Alert</h4>
-                <p id="inventory-alert-desc">Some laundry supplies (fabric conditioner, detergent boosters, garment bags) have reached minimum threshold.</p>
+                <p id="inventory-alert-desc">Some laundry supplies (fabric conditioner, detergent boosters, garment
+                  bags) have reached minimum threshold.</p>
               </div>
             </div>
             <button type="button" class="btn btn-sm btn-dark" onclick="AdminPanel.filterInventory('low')">
@@ -357,12 +375,16 @@
             <div class="toolbar-left">
               <div class="search-box-wrapper mini">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="admin-inventory-search" placeholder="Search supplies or SKU..." oninput="AdminPanel.filterInventoryTable()">
+                <input type="text" id="admin-inventory-search" placeholder="Search supplies or SKU..."
+                  oninput="AdminPanel.filterInventoryTable()">
               </div>
               <div class="btn-group">
-                <button class="btn btn-secondary active" id="btn-inv-filter-all" onclick="AdminPanel.filterInventory('all')">All Supplies</button>
-                <button class="btn btn-secondary" id="btn-inv-filter-low" onclick="AdminPanel.filterInventory('low')">Low Stock</button>
-                <button class="btn btn-secondary" id="btn-inv-filter-out" onclick="AdminPanel.filterInventory('out')">Out of Stock</button>
+                <button class="btn btn-secondary active" id="btn-inv-filter-all"
+                  onclick="AdminPanel.filterInventory('all')">All Supplies</button>
+                <button class="btn btn-secondary" id="btn-inv-filter-low"
+                  onclick="AdminPanel.filterInventory('low')">Low Stock</button>
+                <button class="btn btn-secondary" id="btn-inv-filter-out"
+                  onclick="AdminPanel.filterInventory('out')">Out of Stock</button>
               </div>
             </div>
             <div class="toolbar-right">
@@ -399,7 +421,8 @@
             <div class="toolbar-left">
               <div class="search-box-wrapper mini">
                 <i data-lucide="search" class="search-icon"></i>
-                <input type="text" id="admin-sales-search" placeholder="Search Claim #, Customer, or Cashier..." oninput="AdminPanel.filterSalesTable()">
+                <input type="text" id="admin-sales-search" placeholder="Search Claim #, Customer, or Cashier..."
+                  oninput="AdminPanel.filterSalesTable()">
               </div>
               <select id="admin-sales-period-filter" class="form-select mini" onchange="AdminPanel.filterSalesTable()">
                 <option value="today">Today</option>
@@ -556,7 +579,8 @@
                   <div class="form-row">
                     <div class="form-group col-6">
                       <label for="setting-store-address">Store Address</label>
-                      <input type="text" id="setting-store-address" placeholder="e.g. Unit 108 Crystal Water Tower, Makati City">
+                      <input type="text" id="setting-store-address"
+                        placeholder="e.g. Unit 108 Crystal Water Tower, Makati City">
                     </div>
                     <div class="form-group col-6">
                       <label for="setting-store-contact">Contact Numbers / Email</label>
@@ -581,7 +605,8 @@
 
                   <div class="form-group">
                     <label for="setting-receipt-footer">Claim Stub Footer Policy Message</label>
-                    <input type="text" id="setting-receipt-footer" placeholder="e.g. Maraming Salamat! Keep this stub safe.">
+                    <input type="text" id="setting-receipt-footer"
+                      placeholder="e.g. Maraming Salamat! Keep this stub safe.">
                   </div>
 
                   <div class="text-right">
@@ -617,7 +642,8 @@
                     <p>Restore laundry services and claim history from an exported JSON file.</p>
                     <label class="btn btn-secondary mt-2 cursor-pointer">
                       <i data-lucide="upload"></i> Select Backup File
-                      <input type="file" id="restore-file-input" accept=".json" onchange="AdminPanel.importBackupJSON(event)" style="display:none;">
+                      <input type="file" id="restore-file-input" accept=".json"
+                        onchange="AdminPanel.importBackupJSON(event)" style="display:none;">
                     </label>
                   </div>
 
@@ -660,7 +686,7 @@
 
       <form id="product-form" onsubmit="AdminPanel.saveProduct(event)">
         <input type="hidden" id="prod-id">
-        
+
         <div class="modal-body">
           <div class="form-row">
             <div class="form-group col-8">
@@ -733,13 +759,15 @@
 
           <div class="form-group">
             <label for="prod-description">Service Description / Notes</label>
-            <textarea id="prod-description" rows="2" placeholder="Standard everyday clothing wash, tumble dry, and neatly folded..."></textarea>
+            <textarea id="prod-description" rows="2"
+              placeholder="Standard everyday clothing wash, tumble dry, and neatly folded..."></textarea>
           </div>
 
           <div class="form-group">
             <label for="prod-image-url">Image URL</label>
             <div class="input-with-preview">
-              <input type="text" id="prod-image-url" placeholder="https://images.unsplash.com/... or choose preset" oninput="AdminPanel.previewImage(this.value)">
+              <input type="text" id="prod-image-url" placeholder="https://images.unsplash.com/... or choose preset"
+                oninput="AdminPanel.previewImage(this.value)">
               <div class="image-preview-thumb" id="prod-img-preview">
                 <i data-lucide="image"></i>
               </div>
@@ -747,9 +775,11 @@
             <div class="preset-images-picker">
               <span>Presets:</span>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('wash')">🧺 Wash & Fold</button>
-              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('suit')">👔 Dry Clean Suit</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('suit')">👔 Dry Clean
+                Suit</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('barong')">🇵🇭 Barong</button>
-              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('press')">♨️ Steam Press</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('press')">♨️ Steam
+                Press</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('duvet')">🛏️ Comforter</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('shoes')">👟 Sneakers</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('fabcon')">🧴 Fabcon</button>
@@ -790,7 +820,7 @@
 
       <form id="inventory-adjust-form" onsubmit="AdminPanel.saveStockAdjustment(event)">
         <input type="hidden" id="adjust-prod-id">
-        
+
         <div class="modal-body">
           <div class="adjust-product-summary">
             <h4 id="adjust-product-name">Supply Item</h4>
@@ -811,17 +841,21 @@
             <label>Adjustment Type & Quantity</label>
             <div class="adjust-controls-flex">
               <div class="btn-group">
-                <button type="button" class="btn btn-secondary active" id="btn-adjust-add" onclick="AdminPanel.setAdjustType('ADD')">
+                <button type="button" class="btn btn-secondary active" id="btn-adjust-add"
+                  onclick="AdminPanel.setAdjustType('ADD')">
                   <i data-lucide="plus"></i> Add (+)
                 </button>
-                <button type="button" class="btn btn-secondary" id="btn-adjust-sub" onclick="AdminPanel.setAdjustType('SUB')">
+                <button type="button" class="btn btn-secondary" id="btn-adjust-sub"
+                  onclick="AdminPanel.setAdjustType('SUB')">
                   <i data-lucide="minus"></i> Subtract (-)
                 </button>
-                <button type="button" class="btn btn-secondary" id="btn-adjust-set" onclick="AdminPanel.setAdjustType('SET')">
+                <button type="button" class="btn btn-secondary" id="btn-adjust-set"
+                  onclick="AdminPanel.setAdjustType('SET')">
                   <i data-lucide="hash"></i> Exact Count (=)
                 </button>
               </div>
-              <input type="number" id="adjust-qty" min="1" step="1" value="10" oninput="AdminPanel.recalcNewStock()" required>
+              <input type="number" id="adjust-qty" min="1" step="1" value="10" oninput="AdminPanel.recalcNewStock()"
+                required>
             </div>
           </div>
 
@@ -867,7 +901,7 @@
 
       <form id="category-form" onsubmit="AdminPanel.saveCategory(event)">
         <input type="hidden" id="cat-id">
-        
+
         <div class="modal-body">
           <div class="form-group">
             <label for="cat-name">Category Name *</label>
@@ -913,7 +947,7 @@
 
       <form id="user-form" onsubmit="AdminPanel.saveUser(event)">
         <input type="hidden" id="user-id">
-        
+
         <div class="modal-body">
           <div class="form-group">
             <label for="user-fullname">Full Name *</label>
@@ -926,7 +960,8 @@
           <div class="form-group">
             <label for="user-password">Password *</label>
             <input type="password" id="user-password" placeholder="Enter password" required>
-            <small class="text-muted" id="user-pwd-help" style="display:none;">Leave blank to keep existing password.</small>
+            <small class="text-muted" id="user-pwd-help" style="display:none;">Leave blank to keep existing
+              password.</small>
           </div>
           <div class="form-row">
             <div class="form-group col-6">
@@ -997,7 +1032,7 @@
       </div>
       <h3 class="confirm-title" id="confirm-title">Are you sure?</h3>
       <p class="confirm-message" id="confirm-message">This action cannot be undone.</p>
-      
+
       <div class="modal-footer confirm-footer">
         <button type="button" class="btn btn-secondary" id="btn-confirm-cancel">Cancel</button>
         <button type="button" class="btn btn-danger" id="btn-confirm-ok">Confirm</button>
@@ -1074,7 +1109,7 @@
         if (stored) {
           try {
             this.currentUser = JSON.parse(stored);
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // Fallback admin demo user if opened directly without prior login
@@ -1209,4 +1244,5 @@
     document.addEventListener("DOMContentLoaded", () => AdminSite.init());
   </script>
 </body>
+
 </html>

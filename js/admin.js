@@ -1,5 +1,5 @@
 /**
- * AQUA FRESH LAUNDRY & DRY CLEANING POS - Admin Dashboard Module
+ * Brand Name POS - Admin Dashboard Module
  * Manages laundry services, categories, supplies stock adjustments,
  * active laundry orders tracker, sales history, reports, users, and store settings.
  */
@@ -1278,7 +1278,7 @@ const AdminPanel = {
     const data = StorageManager.get();
     const s = data.settings || {};
 
-    document.getElementById("setting-store-name").value = s.storeName || "AQUA FRESH LAUNDRY POS";
+    document.getElementById("setting-store-name").value = s.storeName || "Brand Name POS";
     document.getElementById("setting-tagline").value = s.tagline || "Professional Laundry • Dry Cleaning";
     document.getElementById("setting-store-address").value = s.address || "";
     document.getElementById("setting-store-contact").value = s.contact || "";

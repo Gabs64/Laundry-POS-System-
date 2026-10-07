@@ -1,5 +1,5 @@
 /**
- * AQUA FRESH LAUNDRY & DRY CLEANING POS - Data & Storage Management
+ * Brand Name POS - Data & Storage Management
  * Handles Philippine Peso (₱) laundry services, dry cleaning, pressing, supplies, customer claim orders, and localStorage sync.
  */
 

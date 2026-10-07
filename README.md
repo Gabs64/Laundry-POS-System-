@@ -1,4 +1,4 @@
-# AQUA FRESH LAUNDRY & DRY CLEANING - POS & Management System
+# Brand Name - POS & Management System
 
 **Version:** 2.0 (Laundry & Dry Cleaning Edition)  
 **Currency:** Philippine Peso (₱)  

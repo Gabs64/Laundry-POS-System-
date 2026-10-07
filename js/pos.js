@@ -1,5 +1,5 @@
 /**
- * AQUA FRESH LAUNDRY & DRY CLEANING POS - Cashier POS Logic Module
+ * Brand Name POS - Cashier POS Logic Module
  * Implements laundry services browsing, weight & piece cart items, customer claim orders,
  * turnaround due date calculation, Laundry Status Tracker & Pickups, and Official Claim Stub printing.
  */
@@ -791,7 +791,7 @@ const CashierPOS = {
     return `
       <!-- TOP PORTION: OFFICIAL STORE RECEIPT -->
       <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 10px;">
-        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.5px;">${settings.storeName || 'AQUA FRESH LAUNDRY'}</h3>
+        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.5px;">${settings.storeName || 'Brand Name'}</h3>
         <div style="font-size: 0.75rem; color: #444; margin-top: 2px;">${settings.tagline || 'Professional Laundry & Dry Cleaning'}</div>
         <div style="font-size: 0.72rem; color: #444; margin-top: 2px;">${settings.address || ''}</div>
         <div style="font-size: 0.72rem; color: #444;">${settings.contact || ''}</div>
@@ -892,7 +892,7 @@ const CashierPOS = {
     const dueFormatted = sale.dueDate ? new Date(sale.dueDate).toLocaleString() : "48 Hours";
 
     let text = `================================\n`;
-    text += `   ${settings.storeName || 'AQUA FRESH LAUNDRY POS'}\n`;
+    text += `   ${settings.storeName || 'Brand Name POS'}\n`;
     text += `      Official Receipt & Claim\n`;
     text += `================================\n\n`;
     text += `Claim Ticket #: ${sale.claimNumber || sale.transactionNumber}\n`;
