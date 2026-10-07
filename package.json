@@ -1,0 +1,12 @@
+{
+  "name": "aqua-fresh-pos",
+  "version": "2.0.0",
+  "description": "Aqua Fresh Laundry & Dry Cleaning - POS & Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["pos", "laundry", "dry-cleaning", "management-system"],
+  "author": "",
+  "license": "ISC"
+}

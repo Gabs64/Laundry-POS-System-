@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AQUA FRESH LAUNDRY - POS & Admin Portal</title>
+  <meta name="description" content="Laundry & Dry Cleaning Point of Sale System Gateway. Sign in to access the Cashier POS Terminal or Admin Management Dashboard.">
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page-body">
+  
+  <div class="login-backdrop">
+    <div class="login-glass-card">
+      <div class="login-header">
+        <div class="brand-badge">
+          <i data-lucide="droplets" class="brand-icon"></i>
+        </div>
+        <h1 class="brand-title" id="login-store-name">AQUA FRESH LAUNDRY POS</h1>
+        <p class="brand-subtitle">Wash & Fold • Dry Cleaning • Steam Press • Claim Tracking</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="login-form" onsubmit="AppAuth.handleLogin(event)">
+        <div class="form-group">
+          <label for="login-username"><i data-lucide="user"></i> Username</label>
+          <div class="input-with-icon">
+            <input type="text" id="login-username" placeholder="Enter username" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-password"><i data-lucide="lock"></i> Password</label>
+          <div class="input-with-icon">
+            <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login" class="btn btn-primary btn-block btn-lg">
+          <i data-lucide="log-in"></i> Sign In
+        </button>
+      </form>
+
+      <!-- Direct Site Launchers / Quick Demo Logins -->
+      <div class="demo-accounts-box">
+        <div class="demo-title">
+          <i data-lucide="sparkles"></i> Direct Site Access & Demo Logins:
+        </div>
+        
+        <div class="portal-launch-grid mb-3">
+          <a href="pos.html" class="portal-launch-card cashier-card" onclick="AppAuth.quickLogin('cashier', 'cashier123', event)">
+            <div class="launch-icon"><i data-lucide="shopping-cart"></i></div>
+            <div class="launch-text">
+              <strong>Open Cashier POS Site</strong>
+              <small>Terminal for cashier transactions</small>
+            </div>
+          </a>
+
+          <a href="admin.html" class="portal-launch-card admin-card" onclick="AppAuth.quickLogin('admin', 'admin123', event)">
+            <div class="launch-icon"><i data-lucide="shield-check"></i></div>
+            <div class="launch-text">
+              <strong>Open Admin Dashboard Site</strong>
+              <small>Manage products, stock & reports</small>
+            </div>
+          </a>
+        </div>
+
+        <div class="demo-chips">
+          <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('admin', 'admin123')">
+            <span class="role-badge admin">ADMIN</span>
+            <span class="user-meta">admin / admin123</span>
+          </button>
+          <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('cashier', 'cashier123')">
+            <span class="role-badge cashier">CASHIER</span>
+            <span class="user-meta">John Doe (cashier)</span>
+          </button>
+          <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('maria', 'cashier123')">
+            <span class="role-badge cashier">CASHIER</span>
+            <span class="user-meta">Maria Santos (maria)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/sound.js"></script>
+  <script>
+    const AppAuth = {
+      init() {
+        const data = StorageManager.get();
+        const storeNameEl = document.getElementById("login-store-name");
+        if (storeNameEl && data.settings?.storeName) {
+          storeNameEl.textContent = data.settings.storeName;
+        }
+        if (window.lucide) lucide.createIcons();
+      },
+
+      fillCredentials(user, pass) {
+        document.getElementById("login-username").value = user;
+        document.getElementById("login-password").value = pass;
+        this.showToast(`Selected demo account: ${user}`, "info");
+      },
+
+      quickLogin(user, pass, event) {
+        if (event) event.preventDefault();
+        document.getElementById("login-username").value = user;
+        document.getElementById("login-password").value = pass;
+        this.login(user, pass);
+      },
+
+      handleLogin(e) {
+        e.preventDefault();
+        const user = document.getElementById("login-username").value.trim().toLowerCase();
+        const pass = document.getElementById("login-password").value;
+        this.login(user, pass);
+      },
+
+      login(username, password) {
+        const data = StorageManager.get();
+        const users = data.users || [];
+        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
+        if (!user) {
+          Sound.playError();
+          this.showToast("Invalid username or password.", "danger");
+          return;
+        }
+
+        if (user.status === "disabled") {
+          Sound.playError();
+          this.showToast("This user account is currently disabled.", "danger");
+          return;
+        }
+
+        localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+        Sound.playSuccess();
+        this.showToast(`Welcome back, ${user.fullName}! Redirecting...`, "success");
+
+        setTimeout(() => {
+          if (user.role === "ADMIN") {
+            window.location.href = "admin.html";
+          } else {
+            window.location.href = "pos.html";
+          }
+        }, 600);
+      },
+
+      showToast(message, type = "info") {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+        const icons = { success: "check-circle", danger: "alert-circle", info: "info" };
+        toast.innerHTML = `<i data-lucide="${icons[type] || 'info'}"></i><span>${message}</span>`;
+        container.appendChild(toast);
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 250);
+        }, 2500);
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => AppAuth.init());
+  </script>
+</body>
+</html>

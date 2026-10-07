@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - AQUA FRESH LAUNDRY POS</title>
+  <meta name="description" content="Dedicated Laundry & Dry Cleaning Store Management Dashboard.">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js CDN for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="admin-body">
+
+  <div class="admin-layout">
+    
+    <!-- Admin Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="admin-brand">
+          <div class="brand-icon-box">
+            <i data-lucide="droplets"></i>
+          </div>
+          <div>
+            <h3 class="admin-store-name" id="admin-store-name">AQUA FRESH LAUNDRY</h3>
+            <span class="admin-badge">Admin Portal</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="dashboard" onclick="AdminPanel.switchTab('dashboard')">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="laundry" onclick="AdminPanel.switchTab('laundry')">
+          <i data-lucide="sparkles"></i>
+          <span>Laundry Tracker</span>
+          <span class="sidebar-pill-badge badge-active-laundry" id="sidebar-active-laundry-count">0</span>
+        </button>
+        <button class="nav-item" data-tab="products" onclick="AdminPanel.switchTab('products')">
+          <i data-lucide="shirt"></i>
+          <span>Services & Products</span>
+        </button>
+        <button class="nav-item" data-tab="categories" onclick="AdminPanel.switchTab('categories')">
+          <i data-lucide="folder-tree"></i>
+          <span>Categories</span>
+        </button>
+        <button class="nav-item" data-tab="inventory" onclick="AdminPanel.switchTab('inventory')">
+          <i data-lucide="boxes"></i>
+          <span>Supplies Inventory</span>
+          <span class="sidebar-pill-badge" id="sidebar-low-stock-count">0</span>
+        </button>
+        <button class="nav-item" data-tab="sales" onclick="AdminPanel.switchTab('sales')">
+          <i data-lucide="receipt"></i>
+          <span>Sales & Claims</span>
+        </button>
+        <button class="nav-item" data-tab="reports" onclick="AdminPanel.switchTab('reports')">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Reports & Analytics</span>
+        </button>
+        <button class="nav-item" data-tab="cashiers" onclick="AdminPanel.switchTab('cashiers')">
+          <i data-lucide="users"></i>
+          <span>Staff Accounts</span>
+        </button>
+        <button class="nav-item" data-tab="settings" onclick="AdminPanel.switchTab('settings')">
+          <i data-lucide="settings"></i>
+          <span>Store Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="pos.html" class="btn btn-secondary btn-block mb-2" target="_blank" title="Open Cashier Site in New Tab">
+          <i data-lucide="external-link"></i> Launch Cashier POS
+        </a>
+        <button class="btn btn-danger btn-block btn-logout" onclick="AdminSite.confirmLogout()">
+          <i data-lucide="log-out"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Admin Main Content Area -->
+    <div class="admin-main">
+      
+      <!-- Top Bar -->
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <h2 class="page-title" id="admin-page-title">Dashboard Overview</h2>
+          <span class="page-subtitle" id="admin-page-subtitle">Real-time laundry metrics and operational status</span>
+        </div>
+        <div class="topbar-right">
+          <div class="live-clock text-muted">
+            <i data-lucide="calendar"></i>
+            <span id="admin-clock-display">Today</span>
+          </div>
+          <button type="button" class="btn-icon-nav btn-icon-only" onclick="AdminSite.toggleTheme()" title="Toggle Theme">
+            <i data-lucide="moon" id="admin-theme-icon"></i>
+          </button>
+          <div class="user-profile-badge">
+            <div class="avatar-circle admin-avatar" id="admin-user-avatar">AD</div>
+            <div class="user-info">
+              <span class="user-name" id="admin-user-name">Administrator</span>
+              <span class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Tab Content Views -->
+      <div class="admin-content-body">
+        
+        <!-- 1. DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-pane active">
+          
+          <!-- Key Laundry Metrics Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card card-revenue">
+              <div class="metric-icon-box">
+                <i data-lucide="philippine-peso"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">TODAY'S LAUNDRY SALES</span>
+                <h2 class="metric-value" id="kpi-today-sales">₱0.00</h2>
+                <span class="metric-trend positive" id="kpi-sales-trend"><i data-lucide="trending-up"></i> Live revenue</span>
+              </div>
+            </div>
+
+            <div class="metric-card card-orders">
+              <div class="metric-icon-box">
+                <i data-lucide="sparkles"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">ACTIVE LAUNDRY ORDERS</span>
+                <h2 class="metric-value" id="kpi-active-orders">0</h2>
+                <span class="metric-subtext" id="kpi-ready-pickup-subtext">0 ready for pickup</span>
+              </div>
+            </div>
+
+            <div class="metric-card card-products">
+              <div class="metric-icon-box">
+                <i data-lucide="scale"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">TOTAL KG PROCESSED</span>
+                <h2 class="metric-value" id="kpi-total-kg">0 kg</h2>
+                <span class="metric-subtext" id="kpi-total-orders-count">0 total transactions</span>
+              </div>
+            </div>
+
+            <div class="metric-card card-alert" id="card-low-stock-kpi">
+              <div class="metric-icon-box">
+                <i data-lucide="droplets"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">SUPPLIES ALERT</span>
+                <h2 class="metric-value text-danger" id="kpi-low-stock-count">0</h2>
+                <button type="button" class="btn-link-action" onclick="AdminPanel.switchTab('inventory', { filter: 'low' })">
+                  Check Supplies &rarr;
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Two-Column Visuals -->
+          <div class="dashboard-grid-2col mt-4">
+            
+            <!-- Left: Recent Sales & Claim Feed -->
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i data-lucide="clock"></i>
+                  <h3>Recent Laundry Transactions</h3>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="AdminPanel.switchTab('laundry')">
+                  Open Tracker
+                </button>
+              </div>
+              <div class="panel-body">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Claim #</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Weight / Units</th>
+                        <th>Total</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-recent-sales-tbody">
+                      <!-- Populated dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Top Laundry Services -->
+            <div class="dashboard-panel">
+              <div class="panel-header">
+                <div class="panel-title">
+                  <i data-lucide="flame"></i>
+                  <h3>Top In-Demand Laundry Services</h3>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="AdminPanel.switchTab('reports')">
+                  Full Analytics
+                </button>
+              </div>
+              <div class="panel-body">
+                <div class="top-products-list" id="dashboard-top-products-list">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- 2. LAUNDRY STATUS TRACKER TAB (DEDICATED) -->
+        <div id="tab-laundry" class="tab-pane">
+          <div class="section-toolbar">
+            <div class="toolbar-left">
+              <div class="search-box-wrapper mini">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="admin-laundry-search" placeholder="Search customer, phone, or Claim #..." oninput="AdminPanel.filterLaundryTable()">
+              </div>
+              <div class="btn-group">
+                <button class="btn btn-secondary active" id="btn-adm-lnd-all" onclick="AdminPanel.filterLaundryStatus('ALL')">All</button>
+                <button class="btn btn-secondary" id="btn-adm-lnd-active" onclick="AdminPanel.filterLaundryStatus('ACTIVE')">In-Progress</button>
+                <button class="btn btn-secondary" id="btn-adm-lnd-ready" onclick="AdminPanel.filterLaundryStatus('READY_FOR_PICKUP')">Ready ✅</button>
+                <button class="btn btn-secondary" id="btn-adm-lnd-claimed" onclick="AdminPanel.filterLaundryStatus('CLAIMED')">Claimed 🧺</button>
+              </div>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-primary" onclick="window.open('pos.html', '_blank')">
+                <i data-lucide="plus-circle"></i> New Laundry Order
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body card-container mt-3">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Claim #</th>
+                    <th>Customer Name & Contact</th>
+                    <th>Services & Items</th>
+                    <th>Weight</th>
+                    <th>Promised Ready Date</th>
+                    <th>Total Paid</th>
+                    <th>Laundry Status</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-laundry-table-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. SERVICES & PRODUCTS TAB -->
+        <div id="tab-products" class="tab-pane">
+          <div class="section-toolbar">
+            <div class="toolbar-left">
+              <div class="search-box-wrapper mini">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="admin-product-search" placeholder="Search service name, SKU, or category..." oninput="AdminPanel.filterProductsTable()">
+              </div>
+              <select id="admin-product-category-filter" class="form-select mini" onchange="AdminPanel.filterProductsTable()">
+                <option value="">All Categories</option>
+              </select>
+              <select id="admin-product-status-filter" class="form-select mini" onchange="AdminPanel.filterProductsTable()">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-primary" onclick="AdminPanel.openProductModal()">
+                <i data-lucide="plus-circle"></i> Add Service / Product
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body card-container mt-3">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Service Name & SKU</th>
+                    <th>Category</th>
+                    <th>Rate / Unit</th>
+                    <th>Cost Rate</th>
+                    <th>Type / Stock</th>
+                    <th>Status</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-products-table-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. CATEGORIES TAB -->
+        <div id="tab-categories" class="tab-pane">
+          <div class="section-toolbar">
+            <div class="toolbar-left">
+              <p class="text-muted">Organize services and add-ons (Wash & Fold, Dry Cleaning, Steam Press, Bulky Care, Supplies).</p>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-primary" onclick="AdminPanel.openCategoryModal()">
+                <i data-lucide="folder-plus"></i> Add Category
+              </button>
+            </div>
+          </div>
+
+          <div class="category-cards-grid mt-3" id="admin-categories-grid">
+            <!-- Dynamically populated category cards -->
+          </div>
+        </div>
+
+        <!-- 5. SUPPLIES INVENTORY TAB -->
+        <div id="tab-inventory" class="tab-pane">
+          
+          <!-- Low Stock Banner Alert -->
+          <div class="alert-banner warning-banner" id="inventory-low-stock-banner" style="display:none;">
+            <div class="alert-content">
+              <i data-lucide="alert-octagon"></i>
+              <div>
+                <h4 id="inventory-alert-title">Low Supplies Alert</h4>
+                <p id="inventory-alert-desc">Some laundry supplies (fabric conditioner, detergent boosters, garment bags) have reached minimum threshold.</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-dark" onclick="AdminPanel.filterInventory('low')">
+              Filter Low Stock Only
+            </button>
+          </div>
+
+          <div class="section-toolbar mt-3">
+            <div class="toolbar-left">
+              <div class="search-box-wrapper mini">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="admin-inventory-search" placeholder="Search supplies or SKU..." oninput="AdminPanel.filterInventoryTable()">
+              </div>
+              <div class="btn-group">
+                <button class="btn btn-secondary active" id="btn-inv-filter-all" onclick="AdminPanel.filterInventory('all')">All Supplies</button>
+                <button class="btn btn-secondary" id="btn-inv-filter-low" onclick="AdminPanel.filterInventory('low')">Low Stock</button>
+                <button class="btn btn-secondary" id="btn-inv-filter-out" onclick="AdminPanel.filterInventory('out')">Out of Stock</button>
+              </div>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-secondary" onclick="AdminPanel.openInventoryLogsModal()">
+                <i data-lucide="clipboard-list"></i> Supplies Audit Log
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body card-container mt-3">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Supply Item</th>
+                    <th>SKU / Barcode</th>
+                    <th>Current Stock</th>
+                    <th>Minimum Threshold</th>
+                    <th>Status</th>
+                    <th class="text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-inventory-table-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. SALES & CLAIMS HISTORY TAB -->
+        <div id="tab-sales" class="tab-pane">
+          <div class="section-toolbar">
+            <div class="toolbar-left">
+              <div class="search-box-wrapper mini">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="admin-sales-search" placeholder="Search Claim #, Customer, or Cashier..." oninput="AdminPanel.filterSalesTable()">
+              </div>
+              <select id="admin-sales-period-filter" class="form-select mini" onchange="AdminPanel.filterSalesTable()">
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="all">All Time</option>
+              </select>
+              <select id="admin-sales-payment-filter" class="form-select mini" onchange="AdminPanel.filterSalesTable()">
+                <option value="">All Payment Methods</option>
+                <option value="CASH">Cash</option>
+                <option value="GCASH">GCash</option>
+                <option value="CARD">Card</option>
+              </select>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-secondary" onclick="AdminPanel.exportSalesCSV()">
+                <i data-lucide="download"></i> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-body card-container mt-3">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Claim / Txn #</th>
+                    <th>Customer Name</th>
+                    <th>Cashier</th>
+                    <th>Services / Items</th>
+                    <th>Payment</th>
+                    <th>Total Paid</th>
+                    <th>Status</th>
+                    <th class="text-right">Claim Stub</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-sales-table-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. REPORTS & ANALYTICS TAB -->
+        <div id="tab-reports" class="tab-pane">
+          <div class="reports-header-cards">
+            <div class="report-kpi-card">
+              <span class="label">Sales Today</span>
+              <h3 id="report-sales-today">₱0.00</h3>
+              <small id="report-orders-today">0 Transactions</small>
+            </div>
+            <div class="report-kpi-card">
+              <span class="label">Sales This Week</span>
+              <h3 id="report-sales-week">₱0.00</h3>
+              <small id="report-orders-week">0 Transactions</small>
+            </div>
+            <div class="report-kpi-card">
+              <span class="label">Sales This Month</span>
+              <h3 id="report-sales-month">₱0.00</h3>
+              <small id="report-orders-month">0 Transactions</small>
+            </div>
+            <div class="report-kpi-card">
+              <span class="label">Avg Order Value</span>
+              <h3 id="report-avg-order">₱0.00</h3>
+              <small>Per customer drop-off</small>
+            </div>
+          </div>
+
+          <!-- Visual Charts Grid -->
+          <div class="charts-grid mt-4">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4><i data-lucide="trending-up"></i> Revenue Trend</h4>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-revenue-trend"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4><i data-lucide="pie-chart"></i> Revenue by Laundry Service</h4>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-sales-category"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4><i data-lucide="wallet"></i> Payment Methods Breakdown</h4>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-payment-methods"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h4><i data-lucide="user-check"></i> Orders Handled by Cashier</h4>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chart-sales-cashier"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. STAFF ACCOUNTS TAB -->
+        <div id="tab-cashiers" class="tab-pane">
+          <div class="section-toolbar">
+            <div class="toolbar-left">
+              <p class="text-muted">Manage Cashier and Laundry Administrator user accounts and access permissions.</p>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-primary" onclick="AdminPanel.openUserModal()">
+                <i data-lucide="user-plus"></i> Add New User
+              </button>
+            </div>
+          </div>
+
+          <div class="users-grid mt-3" id="admin-users-grid">
+            <!-- Dynamically populated user cards -->
+          </div>
+        </div>
+
+        <!-- 9. STORE SETTINGS TAB -->
+        <div id="tab-settings" class="tab-pane">
+          <div class="settings-container">
+            <div class="settings-card">
+              <div class="settings-card-header">
+                <i data-lucide="droplets"></i>
+                <div>
+                  <h3>Laundry Store Profile & Policy</h3>
+                  <p>Customize business profile, claim ticket prefix, and turnaround time settings.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <form id="settings-store-form" onsubmit="AdminPanel.saveStoreSettings(event)">
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="setting-store-name">Store / Business Name</label>
+                      <input type="text" id="setting-store-name" required>
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="setting-tagline">Tagline / Slogan</label>
+                      <input type="text" id="setting-tagline" placeholder="e.g. Professional Laundry • Dry Cleaning">
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group col-6">
+                      <label for="setting-store-address">Store Address</label>
+                      <input type="text" id="setting-store-address" placeholder="e.g. Unit 108 Crystal Water Tower, Makati City">
+                    </div>
+                    <div class="form-group col-6">
+                      <label for="setting-store-contact">Contact Numbers / Email</label>
+                      <input type="text" id="setting-store-contact" placeholder="e.g. (02) 8834-WASH • 0917-889-2782">
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group col-4">
+                      <label for="setting-claim-prefix">Claim Ticket Prefix</label>
+                      <input type="text" id="setting-claim-prefix" placeholder="e.g. LND-2026-">
+                    </div>
+                    <div class="form-group col-4">
+                      <label for="setting-turnaround-hours">Default Turnaround (Hours)</label>
+                      <input type="number" id="setting-turnaround-hours" min="1" value="48">
+                    </div>
+                    <div class="form-group col-4">
+                      <label for="setting-tax-rate">VAT Rate (%)</label>
+                      <input type="number" id="setting-tax-rate" min="0" max="100" step="0.1" value="12">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="setting-receipt-footer">Claim Stub Footer Policy Message</label>
+                    <input type="text" id="setting-receipt-footer" placeholder="e.g. Maraming Salamat! Keep this stub safe.">
+                  </div>
+
+                  <div class="text-right">
+                    <button type="submit" class="btn btn-primary">
+                      <i data-lucide="save"></i> Save Laundry Settings
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Database Backup & Data Reset Card -->
+            <div class="settings-card mt-4">
+              <div class="settings-card-header">
+                <i data-lucide="database"></i>
+                <div>
+                  <h3>Data Management & Factory Reset</h3>
+                  <p>Export laundry database backup or reset demo fixtures.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="data-actions-flex">
+                  <div class="data-action-box">
+                    <h5>Export Database (JSON)</h5>
+                    <p>Download a complete backup snapshot of services, categories, claim orders, and settings.</p>
+                    <button class="btn btn-secondary mt-2" onclick="AdminPanel.exportBackupJSON()">
+                      <i data-lucide="download"></i> Download Backup JSON
+                    </button>
+                  </div>
+
+                  <div class="data-action-box">
+                    <h5>Restore Backup</h5>
+                    <p>Restore laundry services and claim history from an exported JSON file.</p>
+                    <label class="btn btn-secondary mt-2 cursor-pointer">
+                      <i data-lucide="upload"></i> Select Backup File
+                      <input type="file" id="restore-file-input" accept=".json" onchange="AdminPanel.importBackupJSON(event)" style="display:none;">
+                    </label>
+                  </div>
+
+                  <div class="data-action-box danger-box">
+                    <h5>Reset Demo Laundry Data</h5>
+                    <p>Clear custom modifications and restore original fresh Philippine Laundry catalog & orders.</p>
+                    <button class="btn btn-danger mt-2" onclick="AdminPanel.confirmFactoryReset()">
+                      <i data-lucide="rotate-ccw"></i> Reset to Default Demo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALS CONTAINER                          -->
+  <!-- ========================================== -->
+
+  <!-- PRODUCT / SERVICE MODAL -->
+  <div id="modal-product-form" class="modal-backdrop">
+    <div class="modal-dialog modal-form-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="package-plus"></i>
+          <h3 id="product-modal-title">Add New Service / Product</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="AdminPanel.closeProductModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="product-form" onsubmit="AdminPanel.saveProduct(event)">
+        <input type="hidden" id="prod-id">
+        
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group col-8">
+              <label for="prod-name">Service / Product Name *</label>
+              <input type="text" id="prod-name" placeholder="e.g. Regular Clothes (Wash-Dry-Fold)" required>
+            </div>
+            <div class="form-group col-4">
+              <label for="prod-sku">SKU / Service Code</label>
+              <input type="text" id="prod-sku" placeholder="e.g. WDF-001">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="prod-category">Category *</label>
+              <select id="prod-category" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label for="prod-unit">Pricing Unit *</label>
+              <select id="prod-unit" required>
+                <option value="kg">Per Kilo (kg)</option>
+                <option value="pc">Per Piece (pc)</option>
+                <option value="set">Per Set (set)</option>
+                <option value="pair">Per Pair (pair)</option>
+                <option value="load">Per Load / Token</option>
+                <option value="sachet">Per Sachet</option>
+                <option value="scoop">Per Scoop</option>
+                <option value="job">Per Job / Service</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="prod-price">Selling Rate (₱) *</label>
+              <input type="number" id="prod-price" min="0.01" step="0.25" placeholder="35.00" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="prod-cost">Direct Cost (₱)</label>
+              <input type="number" id="prod-cost" min="0" step="0.25" placeholder="10.00">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="prod-is-service">Item Type</label>
+              <select id="prod-is-service" onchange="AdminPanel.toggleProductStockInputs()">
+                <option value="true">Laundry Service (Unlimited Capacity)</option>
+                <option value="false">Physical Supply / Retail Product (Stock Tracked)</option>
+              </select>
+            </div>
+            <div class="form-group col-6" id="prod-barcode-wrap">
+              <label for="prod-barcode">Barcode / Scan Code</label>
+              <input type="text" id="prod-barcode" placeholder="e.g. 480009900101">
+            </div>
+          </div>
+
+          <div class="form-row" id="prod-stock-inputs-row" style="display:none;">
+            <div class="form-group col-6">
+              <label for="prod-stock">Current Stock Quantity</label>
+              <input type="number" id="prod-stock" min="0" step="1" value="100">
+            </div>
+            <div class="form-group col-6">
+              <label for="prod-threshold">Low Stock Alert Threshold</label>
+              <input type="number" id="prod-threshold" min="0" step="1" value="10">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="prod-description">Service Description / Notes</label>
+            <textarea id="prod-description" rows="2" placeholder="Standard everyday clothing wash, tumble dry, and neatly folded..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="prod-image-url">Image URL</label>
+            <div class="input-with-preview">
+              <input type="text" id="prod-image-url" placeholder="https://images.unsplash.com/... or choose preset" oninput="AdminPanel.previewImage(this.value)">
+              <div class="image-preview-thumb" id="prod-img-preview">
+                <i data-lucide="image"></i>
+              </div>
+            </div>
+            <div class="preset-images-picker">
+              <span>Presets:</span>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('wash')">🧺 Wash & Fold</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('suit')">👔 Dry Clean Suit</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('barong')">🇵🇭 Barong</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('press')">♨️ Steam Press</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('duvet')">🛏️ Comforter</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('shoes')">👟 Sneakers</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('fabcon')">🧴 Fabcon</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="prod-status">Service Status</label>
+            <select id="prod-status">
+              <option value="active">Active (Available on Cashier POS)</option>
+              <option value="inactive">Inactive (Hidden from POS)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="AdminPanel.closeProductModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-product">
+            <i data-lucide="save"></i> Save Item
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- STOCK ADJUSTMENT MODAL (FOR SUPPLIES) -->
+  <div id="modal-inventory-adjust" class="modal-backdrop">
+    <div class="modal-dialog modal-adjust-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="boxes"></i>
+          <h3>Adjust Laundry Supplies Stock</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="AdminPanel.closeAdjustStockModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="inventory-adjust-form" onsubmit="AdminPanel.saveStockAdjustment(event)">
+        <input type="hidden" id="adjust-prod-id">
+        
+        <div class="modal-body">
+          <div class="adjust-product-summary">
+            <h4 id="adjust-product-name">Supply Item</h4>
+            <div class="stock-comparison-box">
+              <div class="comp-col">
+                <span class="label">Current Stock</span>
+                <span class="val" id="adjust-current-stock">0</span>
+              </div>
+              <div class="comp-arrow">&rarr;</div>
+              <div class="comp-col">
+                <span class="label">New Calculated Stock</span>
+                <span class="val text-success" id="adjust-new-stock">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label>Adjustment Type & Quantity</label>
+            <div class="adjust-controls-flex">
+              <div class="btn-group">
+                <button type="button" class="btn btn-secondary active" id="btn-adjust-add" onclick="AdminPanel.setAdjustType('ADD')">
+                  <i data-lucide="plus"></i> Add (+)
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-adjust-sub" onclick="AdminPanel.setAdjustType('SUB')">
+                  <i data-lucide="minus"></i> Subtract (-)
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-adjust-set" onclick="AdminPanel.setAdjustType('SET')">
+                  <i data-lucide="hash"></i> Exact Count (=)
+                </button>
+              </div>
+              <input type="number" id="adjust-qty" min="1" step="1" value="10" oninput="AdminPanel.recalcNewStock()" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="adjust-reason">Reason for Adjustment *</label>
+            <select id="adjust-reason" required>
+              <option value="Restock">Restock (Received shipment)</option>
+              <option value="Used in Wash">Used in Wash Batch</option>
+              <option value="Damaged">Damaged / Spillage</option>
+              <option value="Correction">Audit Correction</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="adjust-notes">Notes / Batch No.</label>
+            <input type="text" id="adjust-notes" placeholder="e.g. Supplier Invoice #8812">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="AdminPanel.closeAdjustStockModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="save"></i> Save Adjustment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CATEGORY MODAL -->
+  <div id="modal-category-form" class="modal-backdrop">
+    <div class="modal-dialog modal-category-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="folder-plus"></i>
+          <h3 id="category-modal-title">Add Category</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="AdminPanel.closeCategoryModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="category-form" onsubmit="AdminPanel.saveCategory(event)">
+        <input type="hidden" id="cat-id">
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="cat-name">Category Name *</label>
+            <input type="text" id="cat-name" placeholder="e.g. Wash & Fold, Dry Cleaning" required>
+          </div>
+          <div class="form-group">
+            <label for="cat-icon">Icon</label>
+            <select id="cat-icon">
+              <option value="shirt">Shirt / Clothes</option>
+              <option value="sparkles">Sparkles / Dry Clean</option>
+              <option value="flame">Flame / Iron Press</option>
+              <option value="package">Package / Bulky</option>
+              <option value="droplets">Droplets / Detergent</option>
+              <option value="waves">Waves / Water</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cat-desc">Description</label>
+            <input type="text" id="cat-desc" placeholder="Brief category description">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="AdminPanel.closeCategoryModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- USER MODAL -->
+  <div id="modal-user-form" class="modal-backdrop">
+    <div class="modal-dialog modal-user-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="user-plus"></i>
+          <h3 id="user-modal-title">Add Staff Account</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="AdminPanel.closeUserModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="user-form" onsubmit="AdminPanel.saveUser(event)">
+        <input type="hidden" id="user-id">
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="user-fullname">Full Name *</label>
+            <input type="text" id="user-fullname" placeholder="e.g. Juan dela Cruz" required>
+          </div>
+          <div class="form-group">
+            <label for="user-username">Username *</label>
+            <input type="text" id="user-username" placeholder="e.g. cashier" required>
+          </div>
+          <div class="form-group">
+            <label for="user-password">Password *</label>
+            <input type="password" id="user-password" placeholder="Enter password" required>
+            <small class="text-muted" id="user-pwd-help" style="display:none;">Leave blank to keep existing password.</small>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="user-role">Role *</label>
+              <select id="user-role" required>
+                <option value="CASHIER">CASHIER (Terminal & Tracker only)</option>
+                <option value="ADMIN">ADMIN (Full management access)</option>
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label for="user-status">Status</label>
+              <select id="user-status">
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="AdminPanel.closeUserModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- AUDIT LOGS MODAL -->
+  <div id="modal-inventory-logs" class="modal-backdrop">
+    <div class="modal-dialog modal-logs-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="clipboard-list"></i>
+          <h3>Supplies Inventory Audit Logs</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="AdminPanel.closeInventoryLogsModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Supply Item</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Prev &rarr; New</th>
+                <th>Reason & Notes</th>
+                <th>User</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-logs-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION MODAL -->
+  <div id="modal-confirm" class="modal-backdrop">
+    <div class="modal-dialog modal-confirm-dialog">
+      <div class="confirm-icon-circle">
+        <i data-lucide="alert-triangle"></i>
+      </div>
+      <h3 class="confirm-title" id="confirm-title">Are you sure?</h3>
+      <p class="confirm-message" id="confirm-message">This action cannot be undone.</p>
+      
+      <div class="modal-footer confirm-footer">
+        <button type="button" class="btn btn-secondary" id="btn-confirm-cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLAIM STUB / RECEIPT AUDIT MODAL -->
+  <div id="modal-sale-success" class="modal-backdrop">
+    <div class="modal-dialog modal-receipt-dialog">
+      <div class="success-banner" style="background: linear-gradient(135deg, #0284c7, #38bdf8);">
+        <div class="success-icon-circle">
+          <i data-lucide="receipt"></i>
+        </div>
+        <h2>CLAIM STUB & RECEIPT AUDIT</h2>
+        <p class="success-txn-text">Claim Ticket <span id="success-modal-txnid">#LND-2026-121</span></p>
+      </div>
+
+      <div class="receipt-paper-wrapper" id="receipt-preview-content"></div>
+
+      <div class="modal-footer receipt-actions-footer">
+        <button type="button" class="btn btn-primary" onclick="CashierPOS.printCurrentReceipt()">
+          <i data-lucide="printer"></i> Print Claim Stub
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="CashierPOS.downloadReceiptText()">
+          <i data-lucide="download"></i> Download Text
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="CashierPOS.closeReceiptModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Print Area -->
+  <div id="thermal-print-area" class="thermal-print-area"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/pos.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    const AdminSite = {
+      currentUser: null,
+
+      init() {
+        Sound.init();
+        this.initTheme();
+        this.startLiveClock();
+        this.checkAuth();
+
+        // Multi-tab real-time sync with POS cashier sales
+        window.addEventListener("storage", (e) => {
+          if (e.key === "AQUA_LAUNDRY_POS_DATA_V2" || e.key === "MY_STORE_POS_DATA_V1") {
+            if (AdminPanel.currentTab === "dashboard") AdminPanel.renderDashboard();
+            if (AdminPanel.currentTab === "laundry") AdminPanel.renderLaundryTable();
+            if (AdminPanel.currentTab === "sales") AdminPanel.renderSalesTable();
+            if (AdminPanel.currentTab === "inventory") AdminPanel.renderInventoryTable();
+            if (AdminPanel.currentTab === "reports") AdminPanel.renderReports();
+            this.updateStoreBrand();
+          }
+        });
+
+        AdminPanel.init();
+        if (window.lucide) lucide.createIcons();
+      },
+
+      checkAuth() {
+        const stored = localStorage.getItem("POS_ACTIVE_USER");
+        if (stored) {
+          try {
+            this.currentUser = JSON.parse(stored);
+          } catch (e) {}
+        }
+
+        // Fallback admin demo user if opened directly without prior login
+        if (!this.currentUser) {
+          this.currentUser = {
+            id: "usr-1",
+            fullName: "Administrator",
+            username: "admin",
+            role: "ADMIN"
+          };
+          localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(this.currentUser));
+        }
+
+        this.updateHeader();
+      },
+
+      updateHeader() {
+        if (!this.currentUser) return;
+        const u = this.currentUser;
+        const initials = u.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+        document.getElementById("admin-user-avatar").textContent = initials;
+        document.getElementById("admin-user-name").textContent = u.fullName;
+
+        this.updateStoreBrand();
+      },
+
+      updateStoreBrand() {
+        const data = StorageManager.get();
+        const storeNameEl = document.getElementById("admin-store-name");
+        if (storeNameEl && data.settings?.storeName) {
+          storeNameEl.textContent = data.settings.storeName;
+        }
+      },
+
+      startLiveClock() {
+        const update = () => {
+          const now = new Date();
+          const formatted = now.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          }) + " • " + now.toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit'
+          });
+          const clock = document.getElementById("admin-clock-display");
+          if (clock) clock.textContent = formatted;
+        };
+        update();
+        setInterval(update, 1000);
+      },
+
+      initTheme() {
+        const saved = localStorage.getItem("POS_THEME") || "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+        this.updateThemeIcon(saved);
+      },
+
+      toggleTheme() {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("POS_THEME", next);
+        this.updateThemeIcon(next);
+      },
+
+      updateThemeIcon(theme) {
+        const icon = document.getElementById("admin-theme-icon");
+        if (icon) {
+          icon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
+          if (window.lucide) lucide.createIcons();
+        }
+      },
+
+      confirmLogout() {
+        App.showConfirmModal(
+          "Logout from Admin?",
+          "Are you sure you want to end your administrator session?",
+          () => {
+            localStorage.removeItem("POS_ACTIVE_USER");
+            window.location.href = "index.html";
+          }
+        );
+      }
+    };
+
+    // Global App bridge for Admin Panel helpers
+    const App = {
+      getCurrentUser() {
+        return AdminSite.currentUser;
+      },
+      updateBrandDisplay() {
+        AdminSite.updateStoreBrand();
+      },
+      showToast(message, type = "info") {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+        const iconMap = { success: "check-circle-2", danger: "alert-circle", warning: "alert-triangle", info: "info" };
+        toast.innerHTML = `<i data-lucide="${iconMap[type] || 'info'}"></i><span>${message}</span>`;
+        container.appendChild(toast);
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 250);
+        }, 3000);
+      },
+      showConfirmModal(title, message, onConfirm) {
+        const modal = document.getElementById("modal-confirm");
+        const titleEl = document.getElementById("confirm-title");
+        const msgEl = document.getElementById("confirm-message");
+        const okBtn = document.getElementById("btn-confirm-ok");
+        const cancelBtn = document.getElementById("btn-confirm-cancel");
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+
+        const close = () => {
+          modal.classList.remove("active");
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+        };
+
+        okBtn.onclick = () => {
+          close();
+          if (typeof onConfirm === "function") onConfirm();
+        };
+        cancelBtn.onclick = close;
+        modal.classList.add("active");
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => AdminSite.init());
+  </script>
+</body>
+</html>

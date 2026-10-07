@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cashier POS Terminal - AQUA FRESH LAUNDRY</title>
+  <meta name="description" content="Dedicated high-speed Laundry & Dry Cleaning Cashier Point-of-Sale Terminal.">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti for Sale Celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="pos-body">
+
+  <!-- Main POS Screen -->
+  <div class="pos-app-wrapper">
+    
+    <!-- Top Cashier Header -->
+    <header class="pos-header">
+      <div class="header-left">
+        <div class="store-brand">
+          <div class="store-icon-wrapper">
+            <i data-lucide="droplets"></i>
+          </div>
+          <div>
+            <h2 class="store-name-display" id="pos-store-name">AQUA FRESH LAUNDRY POS</h2>
+            <span class="pos-terminal-tag"><i data-lucide="waves"></i> Laundry Terminal #1 • Philippine Peso (₱)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="live-clock" id="live-clock">
+          <i data-lucide="clock"></i>
+          <span id="clock-display">Oct 5, 2026 • 11:32 AM</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Laundry Order Tracker & Pickups Modal Trigger -->
+        <button type="button" class="btn-header-action btn-tracker-action" id="btn-laundry-tracker" title="Laundry Status Tracker & Pickups" onclick="CashierPOS.openLaundryTrackerModal()">
+          <i data-lucide="sparkles"></i>
+          <span>Laundry Tracker</span>
+          <span class="header-tracker-badge" id="header-active-laundry-count">3 Active</span>
+        </button>
+
+        <button type="button" class="btn-header-action" id="btn-recent-sales" title="Recent Transactions" onclick="CashierPOS.openRecentSalesModal()">
+          <i data-lucide="history"></i>
+          <span>Sales Log</span>
+        </button>
+
+        <button type="button" class="btn-icon-nav btn-icon-only" id="btn-theme-toggle" title="Toggle Theme" onclick="PosSite.toggleTheme()">
+          <i data-lucide="moon" id="theme-icon"></i>
+        </button>
+
+        <button type="button" class="btn-icon-nav btn-icon-only" id="btn-sound-toggle" title="Toggle Audio Feedback" onclick="Sound.toggleSound()">
+          <i data-lucide="volume-2" id="sound-icon"></i>
+        </button>
+
+        <!-- Link to Admin Site if user has Admin role -->
+        <a href="admin.html" class="btn btn-secondary btn-sm" id="btn-goto-admin" style="display:none;">
+          <i data-lucide="shield"></i> Admin Portal
+        </a>
+
+        <div class="user-profile-badge">
+          <div class="avatar-circle" id="pos-user-avatar">JD</div>
+          <div class="user-info">
+            <span class="user-name" id="pos-user-name">John Doe</span>
+            <span class="user-role" id="pos-user-role">CASHIER</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-danger btn-logout" onclick="PosSite.confirmLogout()">
+          <i data-lucide="log-out"></i>
+          <span>Logout</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- POS Main Content Layout (65% Products | 35% Cart) -->
+    <main class="pos-main-layout">
+      
+      <!-- Left Section: Services & Products Catalog -->
+      <section class="products-section">
+        
+        <!-- Search and Scanner Toolbar -->
+        <div class="pos-toolbar">
+          <div class="search-box-wrapper">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="pos-search-input" placeholder="Search laundry services, dry clean, supplies (Press F2)..." autocomplete="off">
+            <button type="button" class="search-clear-btn" id="btn-clear-search" onclick="CashierPOS.clearSearch()" style="display:none;">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+
+          <div class="quick-barcode-action">
+            <button type="button" class="btn btn-secondary" onclick="CashierPOS.openBarcodeScannerModal()" title="Simulate Barcode Scanner">
+              <i data-lucide="scan-barcode"></i>
+              <span>Barcode Scan</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Filter Tabs -->
+        <div class="categories-tab-bar" id="pos-category-pills">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Product Grid -->
+        <div class="product-grid-container">
+          <div class="product-grid" id="pos-product-grid">
+            <!-- Dynamically populated -->
+          </div>
+          <!-- Empty search state -->
+          <div class="empty-state" id="pos-empty-products" style="display:none;">
+            <i data-lucide="package-search" class="empty-icon"></i>
+            <h3>No laundry services or products found</h3>
+            <p>Try searching for a different service name or clear the filter.</p>
+            <button class="btn btn-secondary mt-3" onclick="CashierPOS.resetFilters()">
+              <i data-lucide="refresh-cw"></i> Reset Filter
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Section: Cart & Customer Claim Order -->
+      <section class="cart-section">
+        <div class="cart-header">
+          <div class="cart-title">
+            <i data-lucide="shopping-cart"></i>
+            <span>Current Laundry Order</span>
+          </div>
+          <span class="cart-badge" id="cart-item-count">0 items</span>
+        </div>
+
+        <!-- Customer Quick Details Box -->
+        <div class="cart-customer-box">
+          <div class="customer-fields-grid">
+            <div class="form-group-compact">
+              <label for="cart-customer-name"><i data-lucide="user"></i> Customer Name</label>
+              <input type="text" id="cart-customer-name" placeholder="e.g. Juan Dela Cruz" autocomplete="off">
+            </div>
+            <div class="form-group-compact">
+              <label for="cart-customer-phone"><i data-lucide="phone"></i> Mobile No.</label>
+              <input type="tel" id="cart-customer-phone" placeholder="09XX-XXX-XXXX" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart Line Items -->
+        <div class="cart-items-container" id="cart-items-list">
+          <div class="cart-empty-placeholder" id="cart-empty-state">
+            <div class="cart-empty-icon">
+              <i data-lucide="shirt"></i>
+            </div>
+            <h4>No Laundry Items Added</h4>
+            <p>Tap laundry services on the left (Wash & Fold, Dry Cleaning, Pressing) to begin order.</p>
+          </div>
+        </div>
+
+        <!-- Cart Bottom Controls & Summary -->
+        <div class="cart-footer">
+          
+          <!-- Quick Discount and Clear -->
+          <div class="cart-actions-bar">
+            <button type="button" class="btn-action-pill" id="btn-open-discount" onclick="CashierPOS.openDiscountModal()">
+              <i data-lucide="tag"></i>
+              <span id="discount-btn-label">Apply Discount</span>
+            </button>
+            
+            <button type="button" class="btn-action-pill btn-action-danger" id="btn-clear-cart" onclick="CashierPOS.confirmClearCart()">
+              <i data-lucide="trash-2"></i>
+              <span>Clear Cart</span>
+            </button>
+          </div>
+
+          <!-- Totals Breakdown -->
+          <div class="cart-breakdown">
+            <div class="summary-row">
+              <span class="summary-label">Subtotal</span>
+              <span class="summary-value" id="cart-subtotal">₱0.00</span>
+            </div>
+            <div class="summary-row discount-row" id="cart-discount-row" style="display:none;">
+              <span class="summary-label">Discount <span id="cart-discount-name" class="tag-discount"></span></span>
+              <span class="summary-value discount-val" id="cart-discount-amt">-₱0.00</span>
+            </div>
+            <div class="summary-row tax-row" id="cart-tax-row">
+              <span class="summary-label">VAT (12% Included)</span>
+              <span class="summary-value text-muted" id="cart-tax-amt">₱0.00</span>
+            </div>
+            <div class="summary-total-divider"></div>
+            <div class="summary-row grand-total-row">
+              <span class="total-label">TOTAL AMOUNT</span>
+              <span class="total-value" id="cart-grand-total">₱0.00</span>
+            </div>
+          </div>
+
+          <!-- Primary Checkout Button -->
+          <button type="button" id="btn-checkout" class="btn btn-primary btn-checkout btn-lg" onclick="CashierPOS.openCheckoutModal()" disabled>
+            <i data-lucide="credit-card"></i>
+            <span>CHECKOUT & ISSUE CLAIM STUB (F4)</span>
+          </button>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALS CONTAINER                          -->
+  <!-- ========================================== -->
+
+  <!-- 1. CHECKOUT MODAL (LAUNDRY ENHANCED) -->
+  <div id="modal-checkout" class="modal-backdrop">
+    <div class="modal-dialog modal-checkout-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="credit-card"></i>
+          <h3>Laundry Checkout & Claim Details</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="CashierPOS.closeCheckoutModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- Customer & Due Date Summary -->
+        <div class="laundry-checkout-meta-card">
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="checkout-customer-name"><i data-lucide="user"></i> Customer Name</label>
+              <input type="text" id="checkout-customer-name" placeholder="Enter customer name" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="checkout-customer-phone"><i data-lucide="phone"></i> Contact Number</label>
+              <input type="tel" id="checkout-customer-phone" placeholder="09XX-XXX-XXXX">
+            </div>
+          </div>
+
+          <div class="form-row mt-2">
+            <div class="form-group col-6">
+              <label for="checkout-turnaround"><i data-lucide="clock"></i> Turnaround Speed & Due Date</label>
+              <select id="checkout-turnaround" onchange="CashierPOS.updateDueDateDisplay()">
+                <option value="48">Standard (48 Hours / 2 Days)</option>
+                <option value="24">Next-Day Service (24 Hours)</option>
+                <option value="4">Express Rush (4 Hours Same-Day)</option>
+                <option value="72">Gentle / Delicate Care (3 Days)</option>
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label><i data-lucide="calendar"></i> Estimated Ready Date</label>
+              <div class="due-date-preview-pill" id="checkout-due-date-display">
+                Oct 7, 2026 • 11:30 AM
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mt-2">
+            <label for="checkout-instructions"><i data-lucide="file-text"></i> Special Wash & Care Instructions (Optional)</label>
+            <input type="text" id="checkout-instructions" placeholder="e.g. Separate whites, Extra fabric conditioner, Gentle steam press only...">
+          </div>
+        </div>
+
+        <div class="checkout-amount-display mt-3">
+          <span class="label">Total Amount Due</span>
+          <h1 class="amount-huge" id="checkout-display-total">₱0.00</h1>
+        </div>
+
+        <!-- Payment Method Tabs -->
+        <div class="payment-tabs">
+          <button type="button" class="payment-tab active" data-method="CASH" onclick="CashierPOS.selectPaymentMethod('CASH')">
+            <i data-lucide="banknote"></i>
+            <span>CASH</span>
+          </button>
+          <button type="button" class="payment-tab" data-method="GCASH" onclick="CashierPOS.selectPaymentMethod('GCASH')">
+            <i data-lucide="smartphone"></i>
+            <span>GCASH</span>
+          </button>
+          <button type="button" class="payment-tab" data-method="CARD" onclick="CashierPOS.selectPaymentMethod('CARD')">
+            <i data-lucide="credit-card"></i>
+            <span>DEBIT / CARD</span>
+          </button>
+        </div>
+
+        <!-- Method 1: Cash Form -->
+        <div id="payment-view-cash" class="payment-method-view active">
+          <div class="form-group">
+            <label for="cash-received-input">Amount Received (₱)</label>
+            <div class="amount-input-wrapper">
+              <span class="currency-prefix">₱</span>
+              <input type="number" id="cash-received-input" step="0.25" placeholder="0.00" oninput="CashierPOS.calculateChange()" autofocus>
+            </div>
+          </div>
+
+          <!-- Quick Cash Denomination Chips -->
+          <div class="quick-cash-chips">
+            <button type="button" class="cash-chip" onclick="CashierPOS.setExactCash()">Exact</button>
+            <button type="button" class="cash-chip" onclick="CashierPOS.addCash(50)">+₱50</button>
+            <button type="button" class="cash-chip" onclick="CashierPOS.addCash(100)">+₱100</button>
+            <button type="button" class="cash-chip" onclick="CashierPOS.addCash(200)">+₱200</button>
+            <button type="button" class="cash-chip" onclick="CashierPOS.addCash(500)">+₱500</button>
+            <button type="button" class="cash-chip" onclick="CashierPOS.addCash(1000)">+₱1000</button>
+          </div>
+
+          <!-- Change Calculation Display -->
+          <div class="change-calculation-box" id="change-box">
+            <div class="change-row">
+              <span>Change:</span>
+              <span class="change-value" id="checkout-change-amount">₱0.00</span>
+            </div>
+            <div class="insufficient-msg" id="insufficient-cash-msg" style="display:none;">
+              <i data-lucide="alert-circle"></i>
+              <span>Insufficient payment. Remaining: <b id="remaining-amount">₱0.00</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Method 2: GCash Form -->
+        <div id="payment-view-gcash" class="payment-method-view">
+          <div class="qr-placeholder-box">
+            <div class="gcash-badge-logo">GCash</div>
+            <p>Scan Merchant QR or Enter Reference Number</p>
+          </div>
+          <div class="form-group">
+            <label for="gcash-ref-input">GCash Reference No. (Optional)</label>
+            <input type="text" id="gcash-ref-input" placeholder="e.g. 102938475612" maxlength="20">
+          </div>
+        </div>
+
+        <!-- Method 3: Card Form -->
+        <div id="payment-view-card" class="payment-method-view">
+          <div class="form-group">
+            <label for="card-ref-input">Card Approval / Trace No. (Optional)</label>
+            <input type="text" id="card-ref-input" placeholder="e.g. 883921" maxlength="20">
+          </div>
+          <p class="text-muted text-sm"><i data-lucide="shield"></i> Swipe or tap card on POS terminal before finalizing.</p>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-lg" onclick="CashierPOS.closeCheckoutModal()">
+          Cancel
+        </button>
+        <button type="button" id="btn-complete-sale" class="btn btn-success btn-lg" onclick="CashierPOS.processSale()">
+          <i data-lucide="check-circle"></i> Complete Order & Issue Stub
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 2. SALE COMPLETED & LAUNDRY CLAIM STUB RECEIPT MODAL -->
+  <div id="modal-sale-success" class="modal-backdrop">
+    <div class="modal-dialog modal-receipt-dialog">
+      <div class="success-banner">
+        <div class="success-icon-circle">
+          <i data-lucide="check"></i>
+        </div>
+        <h2>ORDER COMPLETED!</h2>
+        <p class="success-txn-text">Claim Ticket <span id="success-modal-txnid">#LND-2026-125</span></p>
+      </div>
+
+      <!-- Live Receipt & Claim Stub Card -->
+      <div class="receipt-paper-wrapper" id="receipt-preview-content">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="modal-footer receipt-actions-footer">
+        <button type="button" class="btn btn-primary" onclick="CashierPOS.printCurrentReceipt()">
+          <i data-lucide="printer"></i> Print Claim Stub & Receipt
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="CashierPOS.downloadReceiptText()">
+          <i data-lucide="download"></i> Download Text
+        </button>
+        <button type="button" class="btn btn-success" onclick="CashierPOS.startNewTransaction()">
+          <i data-lucide="plus"></i> New Laundry Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 3. LAUNDRY STATUS TRACKER & PICKUPS MODAL -->
+  <div id="modal-laundry-tracker" class="modal-backdrop">
+    <div class="modal-dialog modal-tracker-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="sparkles"></i>
+          <h3>Laundry Status Tracker & Customer Pickups</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="CashierPOS.closeLaundryTrackerModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- Tracker Filters & Search Bar -->
+        <div class="tracker-toolbar">
+          <div class="tracker-search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="tracker-search-input" placeholder="Search by customer name, mobile no, or Claim # (e.g. LND-2026-121)..." oninput="CashierPOS.filterLaundryTracker()">
+          </div>
+
+          <div class="tracker-status-pills" id="tracker-status-filter-pills">
+            <button type="button" class="status-pill-btn active" data-status="ALL" onclick="CashierPOS.filterTrackerStatus('ALL')">All Orders</button>
+            <button type="button" class="status-pill-btn" data-status="ACTIVE" onclick="CashierPOS.filterTrackerStatus('ACTIVE')">In Progress</button>
+            <button type="button" class="status-pill-btn" data-status="READY_FOR_PICKUP" onclick="CashierPOS.filterTrackerStatus('READY_FOR_PICKUP')">Ready for Pickup ✅</button>
+            <button type="button" class="status-pill-btn" data-status="CLAIMED" onclick="CashierPOS.filterTrackerStatus('CLAIMED')">Claimed 🧺</button>
+          </div>
+        </div>
+
+        <!-- Laundry Orders Cards Grid / Table -->
+        <div class="tracker-orders-container" id="tracker-orders-list">
+          <!-- Populated dynamically -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4. DISCOUNT MODAL -->
+  <div id="modal-discount" class="modal-backdrop">
+    <div class="modal-dialog modal-discount-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="tag"></i>
+          <h3>Apply Order Discount</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="CashierPOS.closeDiscountModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="discount-presets-grid">
+          <button type="button" class="discount-preset-card" onclick="CashierPOS.applyDiscountPreset('Senior / PWD (20%)', 20, 'percentage')">
+            <span class="preset-name">Senior / PWD</span>
+            <span class="preset-val">20% OFF</span>
+          </button>
+          <button type="button" class="discount-preset-card" onclick="CashierPOS.applyDiscountPreset('Loyalty Member (10%)', 10, 'percentage')">
+            <span class="preset-name">Loyalty Member</span>
+            <span class="preset-val">10% OFF</span>
+          </button>
+          <button type="button" class="discount-preset-card" onclick="CashierPOS.applyDiscountPreset('Promo Voucher (₱50)', 50, 'fixed')">
+            <span class="preset-name">Promo Voucher</span>
+            <span class="preset-val">₱50.00 OFF</span>
+          </button>
+          <button type="button" class="discount-preset-card" onclick="CashierPOS.applyDiscountPreset('Bulk Laundry Deal (15%)', 15, 'percentage')">
+            <span class="preset-name">Bulk Order (10kg+)</span>
+            <span class="preset-val">15% OFF</span>
+          </button>
+        </div>
+
+        <div class="custom-discount-divider">
+          <span>Or Enter Custom Discount</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="custom-discount-type">Type</label>
+            <select id="custom-discount-type">
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount (₱)</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label for="custom-discount-val">Value</label>
+            <input type="number" id="custom-discount-val" min="0" step="0.5" placeholder="e.g. 15">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" onclick="CashierPOS.removeDiscount()">
+          <i data-lucide="trash"></i> Remove Discount
+        </button>
+        <button type="button" class="btn btn-primary" onclick="CashierPOS.applyCustomDiscount()">
+          Apply Discount
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 5. BARCODE SIMULATOR MODAL -->
+  <div id="modal-barcode-scan" class="modal-backdrop">
+    <div class="modal-dialog modal-barcode-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="scan-barcode"></i>
+          <h3>Barcode Scanner Simulator</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="CashierPOS.closeBarcodeScannerModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="text-sm text-muted">Simulate a handheld optical barcode scanner. Scan or click a laundry service or supply barcode below to add directly to the order.</p>
+        <div class="form-group mt-3">
+          <label for="barcode-manual-input">Scan / Enter Barcode</label>
+          <div class="input-with-button">
+            <input type="text" id="barcode-manual-input" placeholder="e.g. 480009900101" onkeydown="if(event.key==='Enter') CashierPOS.submitBarcodeScan()">
+            <button type="button" class="btn btn-primary" onclick="CashierPOS.submitBarcodeScan()">
+              <i data-lucide="corner-down-left"></i> Scan
+            </button>
+          </div>
+        </div>
+
+        <div class="barcode-quick-items mt-3">
+          <span class="label">Click to Simulate Scan:</span>
+          <div class="barcode-chips-list" id="barcode-quick-chips">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 6. RECENT SALES MODAL -->
+  <div id="modal-recent-sales" class="modal-backdrop">
+    <div class="modal-dialog modal-logs-dialog">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="history"></i>
+          <h3>Recent Shift Laundry Sales</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="CashierPOS.closeRecentSalesModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Claim / Txn #</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="cashier-recent-sales-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 7. CONFIRMATION MODAL -->
+  <div id="modal-confirm" class="modal-backdrop">
+    <div class="modal-dialog modal-confirm-dialog">
+      <div class="confirm-icon-circle">
+        <i data-lucide="alert-triangle"></i>
+      </div>
+      <h3 class="confirm-title" id="confirm-title">Are you sure?</h3>
+      <p class="confirm-message" id="confirm-message">This action cannot be undone.</p>
+      
+      <div class="modal-footer confirm-footer">
+        <button type="button" class="btn btn-secondary" id="btn-confirm-cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="btn-confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Print Receipt Area -->
+  <div id="thermal-print-area" class="thermal-print-area"></div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/pos.js"></script>
+  <script>
+    const PosSite = {
+      currentUser: null,
+
+      init() {
+        Sound.init();
+        this.initTheme();
+        this.startLiveClock();
+        this.checkAuth();
+        this.setupShortcuts();
+
+        // Multi-tab real-time sync with Admin changes
+        window.addEventListener("storage", (e) => {
+          if (e.key === "AQUA_LAUNDRY_POS_DATA_V2" || e.key === "MY_STORE_POS_DATA_V1") {
+            CashierPOS.renderCategoryPills();
+            CashierPOS.renderProducts();
+            this.updateStoreBrand();
+            CashierPOS.updateLaundryTrackerBadge();
+          }
+        });
+
+        CashierPOS.init();
+        if (window.lucide) lucide.createIcons();
+      },
+
+      checkAuth() {
+        const stored = localStorage.getItem("POS_ACTIVE_USER");
+        if (stored) {
+          try {
+            this.currentUser = JSON.parse(stored);
+          } catch (e) {}
+        }
+
+        // Fallback demo user if opened directly without prior login
+        if (!this.currentUser) {
+          this.currentUser = {
+            id: "usr-2",
+            fullName: "John Doe",
+            username: "cashier",
+            role: "CASHIER"
+          };
+          localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(this.currentUser));
+        }
+
+        this.updateHeader();
+      },
+
+      updateHeader() {
+        if (!this.currentUser) return;
+        const u = this.currentUser;
+        const initials = u.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+        document.getElementById("pos-user-avatar").textContent = initials;
+        document.getElementById("pos-user-name").textContent = u.fullName;
+        document.getElementById("pos-user-role").textContent = u.role;
+
+        const adminBtn = document.getElementById("btn-goto-admin");
+        if (adminBtn) {
+          adminBtn.style.display = u.role === "ADMIN" ? "inline-flex" : "none";
+        }
+
+        this.updateStoreBrand();
+      },
+
+      updateStoreBrand() {
+        const data = StorageManager.get();
+        const storeNameEl = document.getElementById("pos-store-name");
+        if (storeNameEl && data.settings?.storeName) {
+          storeNameEl.textContent = data.settings.storeName;
+        }
+      },
+
+      startLiveClock() {
+        const update = () => {
+          const now = new Date();
+          const formatted = now.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          }) + " • " + now.toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          });
+          const clock = document.getElementById("clock-display");
+          if (clock) clock.textContent = formatted;
+        };
+        update();
+        setInterval(update, 1000);
+      },
+
+      initTheme() {
+        const saved = localStorage.getItem("POS_THEME") || "dark";
+        document.documentElement.setAttribute("data-theme", saved);
+        this.updateThemeIcon(saved);
+      },
+
+      toggleTheme() {
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        localStorage.setItem("POS_THEME", next);
+        this.updateThemeIcon(next);
+      },
+
+      updateThemeIcon(theme) {
+        const icon = document.getElementById("theme-icon");
+        if (icon) {
+          icon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
+          if (window.lucide) lucide.createIcons();
+        }
+      },
+
+      confirmLogout() {
+        App.showConfirmModal(
+          "Logout from POS?",
+          "Are you sure you want to end your cashier session?",
+          () => {
+            localStorage.removeItem("POS_ACTIVE_USER");
+            window.location.href = "index.html";
+          }
+        );
+      },
+
+      setupShortcuts() {
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "F2") {
+            e.preventDefault();
+            const input = document.getElementById("pos-search-input");
+            if (input) { input.focus(); input.select(); }
+          }
+          if (e.key === "F4") {
+            e.preventDefault();
+            const btn = document.getElementById("btn-checkout");
+            if (btn && !btn.disabled) CashierPOS.openCheckoutModal();
+          }
+          if (e.key === "Escape") {
+            document.querySelectorAll(".modal-backdrop.active").forEach(m => m.classList.remove("active"));
+          }
+        });
+      }
+    };
+
+    // Bridge App helper functions for Modals and Toasts
+    const App = {
+      getCurrentUser() {
+        return PosSite.currentUser;
+      },
+      showToast(message, type = "info") {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+        const iconMap = { success: "check-circle-2", danger: "alert-circle", warning: "alert-triangle", info: "info" };
+        toast.innerHTML = `<i data-lucide="${iconMap[type] || 'info'}"></i><span>${message}</span>`;
+        container.appendChild(toast);
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          setTimeout(() => toast.remove(), 250);
+        }, 3000);
+      },
+      showConfirmModal(title, message, onConfirm) {
+        const modal = document.getElementById("modal-confirm");
+        const titleEl = document.getElementById("confirm-title");
+        const msgEl = document.getElementById("confirm-message");
+        const okBtn = document.getElementById("btn-confirm-ok");
+        const cancelBtn = document.getElementById("btn-confirm-cancel");
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+
+        const close = () => {
+          modal.classList.remove("active");
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+        };
+
+        okBtn.onclick = () => {
+          close();
+          if (typeof onConfirm === "function") onConfirm();
+        };
+        cancelBtn.onclick = close;
+        modal.classList.add("active");
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => PosSite.init());
+  </script>
+</body>
+</html>
