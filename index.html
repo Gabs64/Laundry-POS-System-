@@ -1,23 +1,28 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AQUA FRESH LAUNDRY - POS & Admin Portal</title>
-  <meta name="description" content="Laundry & Dry Cleaning Point of Sale System Gateway. Sign in to access the Cashier POS Terminal or Admin Management Dashboard.">
-  
+  <meta name="description"
+    content="Laundry & Dry Cleaning Point of Sale System Gateway. Sign in to access the Cashier POS Terminal or Admin Management Dashboard.">
+
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+    rel="stylesheet">
+
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body class="login-page-body">
-  
+
   <div class="login-backdrop">
     <div class="login-glass-card">
       <div class="login-header">
@@ -40,7 +45,8 @@
         <div class="form-group">
           <label for="login-password"><i data-lucide="lock"></i> Password</label>
           <div class="input-with-icon">
-            <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" required>
+            <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password"
+              required>
           </div>
         </div>
 
@@ -52,11 +58,12 @@
       <!-- Direct Site Launchers / Quick Demo Logins -->
       <div class="demo-accounts-box">
         <div class="demo-title">
-          <i data-lucide="sparkles"></i> Direct Site Access & Demo Logins:
+          Direct Site Access & Demo Logins:
         </div>
-        
+
         <div class="portal-launch-grid mb-3">
-          <a href="pos.html" class="portal-launch-card cashier-card" onclick="AppAuth.quickLogin('cashier', 'cashier123', event)">
+          <a href="pos.html" class="portal-launch-card cashier-card"
+            onclick="AppAuth.quickLogin('cashier', 'cashier123', event)">
             <div class="launch-icon"><i data-lucide="shopping-cart"></i></div>
             <div class="launch-text">
               <strong>Open Cashier POS Site</strong>
@@ -64,7 +71,8 @@
             </div>
           </a>
 
-          <a href="admin.html" class="portal-launch-card admin-card" onclick="AppAuth.quickLogin('admin', 'admin123', event)">
+          <a href="admin.html" class="portal-launch-card admin-card"
+            onclick="AppAuth.quickLogin('admin', 'admin123', event)">
             <div class="launch-icon"><i data-lucide="shield-check"></i></div>
             <div class="launch-text">
               <strong>Open Admin Dashboard Site</strong>
@@ -177,4 +185,5 @@
     document.addEventListener("DOMContentLoaded", () => AppAuth.init());
   </script>
 </body>
+
 </html>
