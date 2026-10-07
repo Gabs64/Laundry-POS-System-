@@ -3475,3 +3475,340 @@ img {
   margin-bottom: 10px;
   opacity: 0.5;
 }
+
+/* =========================================================
+   TABLET & TOUCH DEVICE OPTIMIZATION (768px - 1024px)
+   Optimized for iPad, iPad Pro, iPad Mini & Android Tablets
+   ========================================================= */
+
+/* Global Touch & Tap Targets */
+@media (hover: none) and (pointer: coarse) {
+  button, input, select, .product-card, .portal-launch-card, .demo-chip, .nav-item, .category-tab-btn {
+    touch-action: manipulation;
+  }
+  
+  .product-grid-container,
+  .categories-tab-bar,
+  .cart-items-container,
+  .admin-content-body,
+  .modal-body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Tablet Landscape & Medium Viewports (Max-Width: 1024px) */
+@media (max-width: 1024px) {
+  /* POS Header */
+  .pos-header {
+    padding: 0 1rem;
+    height: 64px;
+  }
+  
+  .store-icon-wrapper {
+    width: 38px;
+    height: 38px;
+  }
+
+  .store-name-display {
+    font-size: 1.05rem;
+  }
+
+  .live-clock {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .header-left, .header-right {
+    gap: 0.5rem;
+  }
+
+  .btn-header-action {
+    height: 40px;
+    padding: 0 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  /* POS Main Layout */
+  .pos-main-layout {
+    grid-template-columns: 1fr 340px;
+    height: calc(100vh - 64px);
+  }
+
+  .products-section {
+    padding: 0.85rem 1rem;
+  }
+
+  .search-box-wrapper input {
+    height: 46px;
+    font-size: 0.95rem;
+  }
+
+  .category-tab-btn {
+    min-height: 42px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .product-card-img-wrapper {
+    height: 105px;
+  }
+
+  .product-card-body {
+    padding: 0.75rem;
+  }
+
+  .product-card-title {
+    font-size: 0.85rem;
+  }
+
+  .product-card-price {
+    font-size: 0.95rem;
+  }
+
+  /* Cart Section */
+  .cart-section {
+    width: 100%;
+  }
+
+  .cart-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .cart-customer-box {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .cart-items-container {
+    padding: 0.75rem;
+  }
+
+  .cart-item {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .qty-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  .cart-footer {
+    padding: 0.85rem 1rem;
+  }
+
+  .btn-checkout {
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  /* Admin Layout */
+  .admin-layout {
+    grid-template-columns: 210px 1fr;
+  }
+
+  .sidebar-header {
+    padding: 1rem;
+  }
+
+  .admin-brand {
+    gap: 0.5rem;
+  }
+
+  .brand-icon-box {
+    width: 36px;
+    height: 36px;
+  }
+
+  .admin-store-name {
+    font-size: 0.95rem;
+  }
+
+  .nav-item {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.88rem;
+    gap: 0.6rem;
+  }
+
+  .admin-topbar {
+    padding: 0 1rem;
+    height: 64px;
+  }
+
+  .admin-content-body {
+    padding: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .dashboard-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .reports-header-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Modals */
+  .modal-dialog {
+    max-width: 92vw;
+    margin: 0 auto;
+  }
+
+  .modal-checkout-dialog {
+    max-width: 92vw;
+  }
+}
+
+/* Tablet Portrait & Medium-Narrow Screens (Max-Width: 868px) */
+@media (max-width: 868px) {
+  /* POS Header Compact */
+  .live-clock {
+    display: none;
+  }
+
+  .pos-terminal-tag {
+    display: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .user-profile-badge {
+    padding: 0.25rem;
+  }
+
+  .pos-header {
+    padding: 0 0.75rem;
+  }
+
+  /* POS Layout in Portrait */
+  .pos-main-layout {
+    grid-template-columns: 1fr 310px;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.65rem;
+  }
+
+  /* Admin Sidebar Rail for Tablet Portrait */
+  .admin-layout {
+    grid-template-columns: 72px 1fr;
+  }
+
+  .admin-sidebar {
+    width: 72px;
+  }
+
+  .sidebar-header {
+    padding: 0.85rem 0.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .admin-brand div:last-child {
+    display: none;
+  }
+
+  .sidebar-nav {
+    padding: 0.75rem 0.35rem;
+    align-items: center;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+    width: 100%;
+    border-radius: var(--radius-md);
+  }
+
+  .nav-item span {
+    display: none;
+  }
+
+  .sidebar-pill-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.6rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  .sidebar-footer .user-info,
+  .sidebar-footer span {
+    display: none;
+  }
+
+  .sidebar-footer {
+    padding: 0.75rem 0.35rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .sidebar-footer .btn-logout {
+    padding: 0.6rem;
+    justify-content: center;
+  }
+
+  .section-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .toolbar-left, .toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .toolbar-left .search-box-wrapper {
+    width: 100%;
+  }
+
+  .category-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet Stacked Mode for very compact Portrait (Max-Width: 768px) */
+@media (max-width: 768px) {
+  .login-glass-card {
+    padding: 1.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .portal-launch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reports-header-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-tabs {
+    flex-wrap: wrap;
+  }
+
+  .payment-tab {
+    min-width: calc(50% - 0.25rem);
+  }
+
+  .tracker-grid-container {
+    grid-template-columns: 1fr !important;
+  }
+}
