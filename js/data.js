@@ -5,7 +5,7 @@
 
 const SEED_DATA = {
   settings: {
-    storeName: "AQUA FRESH LAUNDRY & DRY CLEAN POS",
+    storeName: "<Brand Name> POS",
     tagline: "Professional Laundry • Dry Cleaning • Steam Pressing",
     currency: "₱",
     address: "Unit 108, Crystal Water Tower, Makati Ave, Makati City",
