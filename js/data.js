@@ -5,7 +5,7 @@
 
 const SEED_DATA = {
   settings: {
-    storeName: "<Brand Name> POS",
+    storeName: "Brand Name POS",
     tagline: "Professional Laundry • Dry Cleaning • Steam Pressing",
     currency: "₱",
     address: "Unit 108, Crystal Water Tower, Makati Ave, Makati City",
@@ -438,7 +438,7 @@ const SEED_DATA = {
   ]
 };
 
-const STORAGE_KEY = "AQUA_LAUNDRY_POS_DATA_V2";
+const STORAGE_KEY = "BRAND_NAME_POS_DATA_V3";
 
 /**
  * Storage Manager Module
@@ -447,12 +447,30 @@ const StorageManager = {
   get() {
     try {
       let stored = localStorage.getItem(STORAGE_KEY);
-      // Auto-migrate from older version if found or initialize fresh laundry data
+      // Auto-migrate from older storage version if found
       if (!stored) {
+        const oldData = localStorage.getItem("AQUA_LAUNDRY_POS_DATA_V2") || localStorage.getItem("MY_STORE_POS_DATA_V1");
+        if (oldData) {
+          try {
+            const parsedOld = JSON.parse(oldData);
+            if (parsedOld && parsedOld.settings) {
+              if (!parsedOld.settings.storeName || parsedOld.settings.storeName.includes("AQUA FRESH") || parsedOld.settings.storeName.includes("<Brand Name>")) {
+                parsedOld.settings.storeName = "Brand Name POS";
+              }
+              this.save(parsedOld);
+              return parsedOld;
+            }
+          } catch(e) {}
+        }
         this.save(SEED_DATA);
         return JSON.parse(JSON.stringify(SEED_DATA));
       }
       const parsed = JSON.parse(stored);
+      // Ensure store name is migrated if old brand name is stored
+      if (parsed.settings && parsed.settings.storeName && (parsed.settings.storeName.includes("AQUA FRESH") || parsed.settings.storeName.includes("<Brand Name>"))) {
+        parsed.settings.storeName = "Brand Name POS";
+        this.save(parsed);
+      }
       // Ensure laundry structures exist
       if (!parsed.products || parsed.products.length === 0 || !parsed.settings?.claimPrefix) {
         this.save(SEED_DATA);

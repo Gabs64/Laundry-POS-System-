@@ -1090,7 +1090,7 @@
 
         // Multi-tab real-time sync with POS cashier sales
         window.addEventListener("storage", (e) => {
-          if (e.key === "AQUA_LAUNDRY_POS_DATA_V2" || e.key === "MY_STORE_POS_DATA_V1") {
+          if (e.key === "BRAND_NAME_POS_DATA_V3" || e.key === "AQUA_LAUNDRY_POS_DATA_V2" || e.key === "MY_STORE_POS_DATA_V1") {
             if (AdminPanel.currentTab === "dashboard") AdminPanel.renderDashboard();
             if (AdminPanel.currentTab === "laundry") AdminPanel.renderLaundryTable();
             if (AdminPanel.currentTab === "sales") AdminPanel.renderSalesTable();
