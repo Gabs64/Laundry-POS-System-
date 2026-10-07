@@ -25,7 +25,7 @@ The system consists of **two dedicated standalone sites** connected through real
 
 Start the local web server:
 ```bash
-node server.js
+node local-server.js
 ```
 Then navigate to:
 - **Portal & Login:** [http://localhost:3000/](http://localhost:3000/)
