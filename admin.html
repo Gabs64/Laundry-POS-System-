@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Admin Portal - Brand Name POS</title>
   <meta name="description" content="Dedicated Laundry & Dry Cleaning Store Management Dashboard.">
 
@@ -284,7 +284,7 @@
           </div>
         </div>
 
-        <!-- 3. SERVICES & PRODUCTS TAB -->
+        <!-- 3. SERVICES & PRODUCTS TAB (COMPACT GRID VIEW) -->
         <div id="tab-products" class="tab-pane">
           <div class="section-toolbar">
             <div class="toolbar-left">
@@ -294,24 +294,54 @@
                   oninput="AdminPanel.filterProductsTable()">
               </div>
               <select id="admin-product-category-filter" class="form-select mini"
-                onchange="AdminPanel.filterProductsTable()">
+                onchange="AdminPanel.onCategoryFilterChange(this.value)">
                 <option value="">All Categories</option>
               </select>
               <select id="admin-product-status-filter" class="form-select mini"
                 onchange="AdminPanel.filterProductsTable()">
                 <option value="">All Statuses</option>
-                <option value="active">Active</option>
+                <option value="active">Active Only</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
             <div class="toolbar-right">
+              <div class="btn-group view-toggle-group">
+                <button type="button" class="btn btn-secondary btn-sm active" id="btn-view-grid" onclick="AdminPanel.switchProductView('grid')" title="Card Grid View">
+                  <i data-lucide="layout-grid"></i> Grid
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-view-table" onclick="AdminPanel.switchProductView('table')" title="List Table View">
+                  <i data-lucide="list"></i> Table
+                </button>
+              </div>
               <button type="button" class="btn btn-primary" onclick="AdminPanel.openProductModal()">
                 <i data-lucide="plus-circle"></i> Add Service / Product
               </button>
             </div>
           </div>
 
-          <div class="panel-body card-container mt-3">
+          <!-- Category Quick Pills (Like Cashier Side) -->
+          <div class="categories-tab-bar mt-2" id="admin-category-pills">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Grid View (Default: Cashier-like compact card grid) -->
+          <div id="admin-product-grid-view" class="product-grid-container mt-2">
+            <div class="product-grid" id="admin-product-grid">
+              <!-- Dynamically populated admin cards -->
+            </div>
+            <!-- Empty state -->
+            <div class="empty-state" id="admin-empty-products" style="display:none;">
+              <i data-lucide="package-search" class="empty-icon"></i>
+              <h3>No laundry services or products found</h3>
+              <p>Try searching for a different keyword or reset category filter.</p>
+              <button class="btn btn-secondary mt-3" onclick="AdminPanel.resetProductFilters()">
+                <i data-lucide="refresh-cw"></i> Reset Filter
+              </button>
+            </div>
+          </div>
+
+          <!-- Table View (Optional toggle) -->
+          <div id="admin-product-table-view" class="panel-body card-container mt-2" style="display:none;">
             <div class="table-responsive">
               <table class="data-table">
                 <thead>

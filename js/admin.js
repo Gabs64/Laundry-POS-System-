@@ -9,6 +9,8 @@ const AdminPanel = {
   adjustType: "ADD", // 'ADD', 'SUB', 'SET'
   charts: {},
   laundryFilterStatus: "ALL",
+  selectedProductCategory: "ALL",
+  productViewMode: "grid",
 
   init() {
     this.renderDashboard();
@@ -302,11 +304,16 @@ const AdminPanel = {
   /* =========================================================
      3. SERVICES & PRODUCTS CATALOG TAB
      ========================================================= */
+  /* =========================================================
+     3. SERVICES & PRODUCTS CATALOG TAB (COMPACT GRID & TABLE)
+     ========================================================= */
   populateCategorySelects() {
     const data = StorageManager.get();
     const categories = data.categories || [];
+    const products = data.products || [];
     const filterSelect = document.getElementById("admin-product-category-filter");
     const formSelect = document.getElementById("prod-category");
+    const pillsContainer = document.getElementById("admin-category-pills");
 
     if (filterSelect) {
       let html = `<option value="">All Categories</option>`;
@@ -319,6 +326,74 @@ const AdminPanel = {
       categories.forEach(c => { html += `<option value="${c.id}">${c.name}</option>`; });
       formSelect.innerHTML = html;
     }
+
+    if (pillsContainer) {
+      const allCount = products.length;
+      let html = `
+        <button type="button" class="category-tab-btn ${this.selectedProductCategory === 'ALL' ? 'active' : ''}" 
+                onclick="AdminPanel.filterProductCategory('ALL')">
+          <i data-lucide="layers"></i>
+          <span>All Services (${allCount})</span>
+        </button>
+      `;
+
+      categories.forEach(c => {
+        const count = products.filter(p => p.categoryId === c.id).length;
+        const iconName = c.icon || "sparkles";
+        const isActive = this.selectedProductCategory === c.id;
+        html += `
+          <button type="button" class="category-tab-btn ${isActive ? 'active' : ''}" 
+                  onclick="AdminPanel.filterProductCategory('${c.id}')">
+            <i data-lucide="${iconName}"></i>
+            <span>${c.name} (${count})</span>
+          </button>
+        `;
+      });
+
+      pillsContainer.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+    }
+  },
+
+  filterProductCategory(catId) {
+    this.selectedProductCategory = catId;
+    const filterSelect = document.getElementById("admin-product-category-filter");
+    if (filterSelect) filterSelect.value = catId === "ALL" ? "" : catId;
+    this.renderProductsTable();
+  },
+
+  onCategoryFilterChange(catId) {
+    this.selectedProductCategory = catId ? catId : "ALL";
+    this.renderProductsTable();
+  },
+
+  switchProductView(mode) {
+    this.productViewMode = mode;
+    const gridView = document.getElementById("admin-product-grid-view");
+    const tableView = document.getElementById("admin-product-table-view");
+    const btnGrid = document.getElementById("btn-view-grid");
+    const btnTable = document.getElementById("btn-view-table");
+
+    if (btnGrid) btnGrid.classList.toggle("active", mode === "grid");
+    if (btnTable) btnTable.classList.toggle("active", mode === "table");
+
+    if (gridView) gridView.style.display = mode === "grid" ? "block" : "none";
+    if (tableView) tableView.style.display = mode === "table" ? "block" : "none";
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  resetProductFilters() {
+    this.selectedProductCategory = "ALL";
+    const searchInput = document.getElementById("admin-product-search");
+    const catSelect = document.getElementById("admin-product-category-filter");
+    const statusSelect = document.getElementById("admin-product-status-filter");
+
+    if (searchInput) searchInput.value = "";
+    if (catSelect) catSelect.value = "";
+    if (statusSelect) statusSelect.value = "";
+
+    this.renderProductsTable();
   },
 
   filterProductsTable() {
@@ -326,8 +401,10 @@ const AdminPanel = {
   },
 
   renderProductsTable() {
+    const grid = document.getElementById("admin-product-grid");
     const tbody = document.getElementById("admin-products-table-tbody");
-    if (!tbody) return;
+    const emptyState = document.getElementById("admin-empty-products");
+    if (!grid && !tbody) return;
 
     const data = StorageManager.get();
     let products = data.products || [];
@@ -335,58 +412,144 @@ const AdminPanel = {
     const catMap = {};
     categories.forEach(c => { catMap[c.id] = c.name; });
 
+    // Update category pills to keep counts accurate
+    this.populateCategorySelects();
+
     const search = (document.getElementById("admin-product-search")?.value || "").trim().toLowerCase();
-    const catFilter = document.getElementById("admin-product-category-filter")?.value;
     const statusFilter = document.getElementById("admin-product-status-filter")?.value;
 
+    // Filter by category
+    if (this.selectedProductCategory && this.selectedProductCategory !== "ALL") {
+      products = products.filter(p => p.categoryId === this.selectedProductCategory);
+    }
+
+    // Filter by search query
     if (search) {
-      products = products.filter(p => p.name.toLowerCase().includes(search) || (p.sku || "").toLowerCase().includes(search));
+      products = products.filter(p => 
+        p.name.toLowerCase().includes(search) || 
+        (p.sku || "").toLowerCase().includes(search) ||
+        (p.barcode || "").toLowerCase().includes(search) ||
+        (catMap[p.categoryId] || "").toLowerCase().includes(search)
+      );
     }
-    if (catFilter) {
-      products = products.filter(p => p.categoryId === catFilter);
-    }
+
+    // Filter by status
     if (statusFilter) {
       products = products.filter(p => p.status === statusFilter);
     }
 
+    const placeholder = "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=400&q=80";
+
+    // Handle Empty State
     if (products.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No items found matching criteria.</td></tr>`;
+      if (grid) grid.innerHTML = "";
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No items found matching criteria.</td></tr>`;
+      if (emptyState) emptyState.style.display = "flex";
       return;
     }
 
-    const placeholder = "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=100&q=80";
+    if (emptyState) emptyState.style.display = "none";
 
-    let html = "";
-    products.forEach(p => {
-      const unit = p.unit || "pc";
-      const isService = p.isService !== false;
-      const typeDisplay = isService ? `<span class="badge-pill badge-active">Laundry Service</span>` : `<span>Stock: <b>${p.stockQuantity}</b></span>`;
+    // 1. Render Compact Grid Cards (Default)
+    if (grid) {
+      let gridHtml = "";
+      products.forEach(p => {
+        const unit = p.unit || "pc";
+        const isService = p.isService !== false;
+        const isOutOfStock = !isService && p.stockQuantity <= 0;
+        const isLowStock = !isService && !isOutOfStock && p.stockQuantity <= (p.lowStockThreshold || 10);
 
-      html += `
-        <tr>
-          <td><img src="${p.imageUrl || placeholder}" class="product-thumb" alt="${p.name}" onerror="this.src='${placeholder}'"></td>
-          <td>
-            <b>${p.name}</b><br>
-            <small class="text-muted">SKU: ${p.sku || 'N/A'}</small>
-          </td>
-          <td>${catMap[p.categoryId] || 'General'}</td>
-          <td class="font-bold">₱${p.price.toFixed(2)} <small class="text-muted">/ ${unit}</small></td>
-          <td class="text-muted">₱${(p.costPrice || 0).toFixed(2)}</td>
-          <td>${typeDisplay}</td>
-          <td><span class="badge-pill ${p.status === 'active' ? 'badge-active' : 'badge-disabled'}">${p.status.toUpperCase()}</span></td>
-          <td class="text-right">
-            <button class="btn btn-secondary btn-sm mr-1" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Item">
-              <i data-lucide="edit-2"></i>
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteProduct('${p.id}')" title="Delete Item">
-              <i data-lucide="trash-2"></i>
-            </button>
-          </td>
-        </tr>
-      `;
-    });
+        let stockBadgeText = "Laundry Service";
+        let stockBadgeClass = "badge-service";
 
-    tbody.innerHTML = html;
+        if (!isService) {
+          if (isOutOfStock) {
+            stockBadgeText = "OUT OF STOCK";
+            stockBadgeClass = "badge-stock-out";
+          } else if (isLowStock) {
+            stockBadgeText = `Low: ${p.stockQuantity} ${unit}s`;
+            stockBadgeClass = "badge-stock-low";
+          } else {
+            stockBadgeText = `Stock: ${p.stockQuantity} ${unit}s`;
+            stockBadgeClass = "badge-stock-good";
+          }
+        }
+
+        const statusClass = p.status === 'active' ? 'badge-stock-good' : 'badge-stock-out';
+        const displayImg = p.imageUrl || placeholder;
+
+        gridHtml += `
+          <div class="admin-product-card ${p.status === 'inactive' ? 'product-card-inactive' : ''}" 
+               onclick="AdminPanel.editProduct('${p.id}')">
+            <div class="admin-product-card-img">
+              <img src="${displayImg}" alt="${p.name}" loading="lazy" onerror="this.src='${placeholder}'">
+              <span class="admin-card-status-badge ${statusClass}">${p.status.toUpperCase()}</span>
+              <span class="admin-card-type-badge ${stockBadgeClass}">${stockBadgeText}</span>
+            </div>
+            <div class="admin-product-card-body">
+              <div>
+                <div class="admin-product-card-meta">
+                  <span class="product-card-category">${catMap[p.categoryId] || 'General'}</span>
+                  <span class="admin-sku-tag">${p.sku ? 'SKU: ' + p.sku : ''}</span>
+                </div>
+                <h4 class="admin-product-card-title" title="${p.name}">${p.name}</h4>
+              </div>
+              <div class="admin-product-card-pricing">
+                <div>
+                  <span class="admin-product-price">₱${p.price.toFixed(2)}</span>
+                  <small class="text-muted">/ ${unit}</small>
+                </div>
+                ${p.costPrice ? `<span class="admin-product-cost">Cost: ₱${p.costPrice.toFixed(2)}</span>` : ''}
+              </div>
+              <div class="admin-product-card-actions" onclick="event.stopPropagation()">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Service">
+                  <i data-lucide="edit-2"></i> Edit
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteProduct('${p.id}')" title="Delete Item">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = gridHtml;
+    }
+
+    // 2. Render Table Rows (for table view toggle)
+    if (tbody) {
+      let tableHtml = "";
+      products.forEach(p => {
+        const unit = p.unit || "pc";
+        const isService = p.isService !== false;
+        const typeDisplay = isService ? `<span class="badge-pill badge-active">Laundry Service</span>` : `<span>Stock: <b>${p.stockQuantity}</b></span>`;
+
+        tableHtml += `
+          <tr>
+            <td><img src="${p.imageUrl || placeholder}" class="table-thumb" alt="${p.name}" onerror="this.src='${placeholder}'"></td>
+            <td>
+              <b>${p.name}</b><br>
+              <small class="text-muted">SKU: ${p.sku || 'N/A'}</small>
+            </td>
+            <td>${catMap[p.categoryId] || 'General'}</td>
+            <td class="font-bold text-success">₱${p.price.toFixed(2)} <small class="text-muted">/ ${unit}</small></td>
+            <td class="text-muted">₱${(p.costPrice || 0).toFixed(2)}</td>
+            <td>${typeDisplay}</td>
+            <td><span class="badge-pill ${p.status === 'active' ? 'badge-active' : 'badge-disabled'}">${p.status.toUpperCase()}</span></td>
+            <td class="text-right">
+              <button class="btn btn-secondary btn-sm mr-1" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Item">
+                <i data-lucide="edit-2"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteProduct('${p.id}')" title="Delete Item">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = tableHtml;
+    }
+
     if (window.lucide) lucide.createIcons();
   },
 
