@@ -471,11 +471,14 @@ const StorageManager = {
         parsed.settings.storeName = "Brand Name POS";
         this.save(parsed);
       }
-      // Ensure laundry structures exist
-      if (!parsed.products || parsed.products.length === 0 || !parsed.settings?.claimPrefix) {
-        this.save(SEED_DATA);
-        return JSON.parse(JSON.stringify(SEED_DATA));
-      }
+      // Ensure basic data structures exist without overwriting user deletions
+      if (!parsed.settings) parsed.settings = { ...SEED_DATA.settings };
+      if (!parsed.products) parsed.products = [];
+      if (!parsed.categories) parsed.categories = [];
+      if (!parsed.sales) parsed.sales = [];
+      if (!parsed.inventoryLogs) parsed.inventoryLogs = [];
+      if (!parsed.users || parsed.users.length === 0) parsed.users = [...SEED_DATA.users];
+
       return parsed;
     } catch (e) {
       console.error("Storage load error:", e);
