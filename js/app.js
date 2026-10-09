@@ -67,7 +67,8 @@ const App = {
 
   async login(username, password) {
     try {
-      const res = await fetch("/api/auth/login", {
+      const apiUrl = (typeof getApiUrl === "function") ? getApiUrl("/api/auth/login") : (window.getApiUrl ? window.getApiUrl("/api/auth/login") : "https://web-production-93c73.up.railway.app/api/auth/login");
+      const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })

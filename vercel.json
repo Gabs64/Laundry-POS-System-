@@ -1,12 +1,16 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "**/*",
-      "use": "@vercel/static"
+      "source": "/api/(.*)",
+      "destination": "https://web-production-93c73.up.railway.app/api/$1"
     }
   ],
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://web-production-93c73.up.railway.app/api/$1"
+    },
     { "src": "/pos", "dest": "/pos.html" },
     { "src": "/admin", "dest": "/admin.html" },
     { "src": "/(.*)", "dest": "/$1" }

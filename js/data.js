@@ -38,6 +38,23 @@ const SEED_DATA = {
 
 const STORAGE_KEY = "CLEAN_POS_SYSTEM_DATA_V1";
 const LAST_SYNC_KEY = "POS_SERVER_LAST_SYNC_TS";
+const RAILWAY_BACKEND_URL = "https://web-production-93c73.up.railway.app";
+
+function getApiUrl(endpoint) {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    // When running directly on Railway or local node server, use relative path
+    if (host.includes("railway.app") || host === "localhost" || host === "127.0.0.1") {
+      return endpoint;
+    }
+  }
+  // When running on Vercel (e.g. kuan-laundry-pos.vercel.app) or any static host, route directly to Railway backend
+  return `${RAILWAY_BACKEND_URL}${endpoint}`;
+}
+
+if (typeof window !== "undefined") {
+  window.getApiUrl = getApiUrl;
+}
 
 /**
  * Storage Manager Module
@@ -97,7 +114,7 @@ const StorageManager = {
   },
 
   async pushToServer(data) {
-    const res = await fetch("/api/data", {
+    const res = await fetch(getApiUrl("/api/data"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data })
@@ -117,7 +134,7 @@ const StorageManager = {
     this._isSyncing = true;
 
     try {
-      const res = await fetch("/api/data");
+      const res = await fetch(getApiUrl("/api/data"));
       if (!res.ok) throw new Error("Server database error " + res.status);
 
       const result = await res.json();
@@ -158,7 +175,7 @@ const StorageManager = {
   },
 
   async resetToDefault() {
-    const res = await fetch("/api/reset", { method: "POST" });
+    const res = await fetch(getApiUrl("/api/reset"), { method: "POST" });
     if (!res.ok) {
       throw new Error("Failed to reset database on server.");
     }
@@ -171,7 +188,7 @@ const StorageManager = {
   },
 
   async addUser(userData) {
-    const res = await fetch("/api/users", {
+    const res = await fetch(getApiUrl("/api/users"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData)
@@ -187,7 +204,7 @@ const StorageManager = {
   },
 
   async updateUser(userId, updates) {
-    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+    const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(userId)}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates)
@@ -203,7 +220,7 @@ const StorageManager = {
   },
 
   async deleteUser(userId) {
-    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+    const res = await fetch(getApiUrl(`/api/users/${encodeURIComponent(userId)}`), {
       method: "DELETE"
     });
     const result = await res.json().catch(() => ({}));
