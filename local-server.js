@@ -590,11 +590,15 @@ const server = http.createServer(async (req, res) => {
         const { userId, sessionId } = JSON.parse(raw);
         const dbData = loadServerData();
         const users = dbData.users || [];
-        const user = users.find(u => u.id === userId);
+        const user = users.find(u => u.id === userId || (userId && u.username === userId));
 
-        if (!user || user.status === 'disabled') {
-          const reason = (user && user.autoDisableReason) ? user.autoDisableReason : 'Account disabled or not found.';
-          return sendJson(res, 401, { success: false, active: false, reason: reason });
+        if (!user) {
+          return sendJson(res, 200, { success: false, active: false, reason: 'User account not found.' });
+        }
+
+        if (user.status === 'disabled') {
+          const reason = user.autoDisableReason || 'Account disabled by Administrator.';
+          return sendJson(res, 200, { success: false, active: false, reason: reason });
         }
 
         const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
@@ -653,7 +657,7 @@ const server = http.createServer(async (req, res) => {
         const { targetUserId } = JSON.parse(raw);
         const dbData = loadServerData();
         const users = dbData.users || [];
-        const user = users.find(u => u.id === targetUserId);
+        const user = users.find(u => u.id === targetUserId || (targetUserId && u.username === targetUserId));
 
         if (!user) {
           return sendJson(res, 404, { success: false, error: 'User account not found.' });

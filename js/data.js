@@ -163,10 +163,10 @@ const StorageManager = {
   startAutoSync() {
     if (this._syncIntervalId) return;
 
-    // Check server every 5 seconds for updates made from other devices
+    // Check server every 3 seconds for updates made from other devices
     this._syncIntervalId = setInterval(() => {
       this.fetchFromServer();
-    }, 5000);
+    }, 3000);
 
     // Also sync immediately when user switches tabs/focuses back to window
     window.addEventListener("focus", () => {
@@ -234,16 +234,17 @@ const StorageManager = {
   },
 
   async sendHeartbeat(userId, sessionId) {
-    if (!userId || !sessionId) return { success: false };
+    if (!userId || !sessionId) return { success: false, active: false };
     try {
       const res = await fetch(getApiUrl("/api/auth/heartbeat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, sessionId })
       });
-      return await res.json().catch(() => ({ success: false }));
+      const data = await res.json().catch(() => ({ success: false, active: false }));
+      return data;
     } catch (e) {
-      return { success: false, error: e.message };
+      return { success: false, active: false, error: e.message };
     }
   },
 
@@ -275,6 +276,28 @@ const StorageManager = {
   },
 
   async forceDisconnectUser(targetUserId) {
+    // 1. Instantly update local client cache
+    const currentData = this.get();
+    if (Array.isArray(currentData.users)) {
+      const target = currentData.users.find(u => u.id === targetUserId || u.username === targetUserId);
+      if (target) {
+        target.activeSessionId = null;
+        target.lastHeartbeat = null;
+        target.isOnline = false;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+      }
+    }
+
+    // 2. Broadcast immediately to any other active tabs/windows
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel("pos_auth_events");
+        bc.postMessage({ type: "FORCE_DISCONNECT", userId: targetUserId });
+        setTimeout(() => bc.close(), 1000);
+      }
+    } catch (e) {}
+
+    // 3. Post to backend server
     const res = await fetch(getApiUrl("/api/auth/force-logout"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -284,10 +307,10 @@ const StorageManager = {
     if (!res.ok || !result.success) {
       throw new Error(result.error || "Failed to disconnect user session.");
     }
-    const currentData = this.get();
     if (result.users) {
       currentData.users = result.users;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+      window.dispatchEvent(new CustomEvent("pos-data-synced", { detail: currentData }));
     }
     return result;
   },
