@@ -1973,6 +1973,7 @@ const AdminPanel = {
 
     record.timeOut = new Date().toISOString();
     record.status = "COMPLETED";
+    record.timedOutByAdmin = true;
     const diffMs = new Date(record.timeOut) - new Date(record.timeIn);
     record.totalMinutes = Math.max(1, Math.round(diffMs / 60000));
     record.totalHoursFormatted = AttendanceManager.formatDuration(record.totalMinutes);

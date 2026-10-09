@@ -651,21 +651,24 @@
       },
 
       validateSessionState(freshData) {
-        if (!this.currentUser || this.currentUser.role === "ADMIN") return;
+        if (!this.currentUser || this.currentUser.role === "ADMIN" || this._isLoggingOut) return;
         const data = freshData || StorageManager.get();
 
         // 1. Check if user account was deleted or disabled by admin
         const dbUser = (data.users || []).find(u => u.id === this.currentUser.id);
-        if (!dbUser || dbUser.status === "disabled") {
-          this.forceLogout("Your account has been deactivated or removed by the Administrator.");
+        if (dbUser && dbUser.status === "disabled") {
+          this.forceLogout("Your account has been deactivated by the Administrator.");
           return;
         }
 
-        // 2. Check if active attendance punch is still CLOCKED_IN
-        const activeAtt = (data.attendance || []).find(a => a.userId === this.currentUser.id && a.status === "CLOCKED_IN");
-        if (!activeAtt) {
-          this.forceLogout("You have been timed out by the Administrator. Your session has ended.");
-          return;
+        // 2. Check if THIS device's active attendance session was specifically timed out by Admin
+        const activeAttId = localStorage.getItem("POS_ACTIVE_ATTENDANCE_ID");
+        if (activeAttId && Array.isArray(data.attendance)) {
+          const matchedPunch = data.attendance.find(a => a.id === activeAttId);
+          if (matchedPunch && (matchedPunch.timedOutByAdmin === true || (matchedPunch.status === "COMPLETED" && (matchedPunch.notes || "").includes("Admin Time-Out")))) {
+            this.forceLogout("You have been timed out by the Administrator. Your session has ended.");
+            return;
+          }
         }
 
         this.updateHeader();

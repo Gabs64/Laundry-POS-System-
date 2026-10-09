@@ -309,6 +309,7 @@ const AttendanceManager = {
         existing.totalHoursFormatted = this.formatDuration(existing.totalMinutes);
       } else {
         // Already clocked in today for this session
+        existing.timedOutByAdmin = false;
         localStorage.setItem("POS_ACTIVE_ATTENDANCE_ID", existing.id);
         StorageManager.save(data);
         return existing;
@@ -327,6 +328,7 @@ const AttendanceManager = {
       totalMinutes: 0,
       totalHoursFormatted: "--",
       status: "CLOCKED_IN",
+      timedOutByAdmin: false,
       notes: "Auto Time-In on login"
     };
 
