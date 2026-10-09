@@ -1001,18 +1001,28 @@ img {
   padding: 0 1rem;
   z-index: 20;
   flex-shrink: 0;
+  gap: 0.75rem;
 }
 
 .header-left, .header-right {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .store-brand {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  white-space: nowrap;
 }
 
 .store-icon-wrapper {
@@ -1033,6 +1043,7 @@ img {
   font-weight: 800;
   letter-spacing: -0.3px;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .pos-terminal-tag {
@@ -1041,29 +1052,39 @@ img {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  white-space: nowrap;
 }
 .pos-terminal-tag i {
   width: 12px;
   height: 12px;
+  flex-shrink: 0;
 }
 
 .live-clock {
   background: var(--bg-app);
   border: 1px solid var(--border-color);
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.85rem;
   border-radius: var(--radius-full);
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 .live-clock i {
   width: 15px;
   height: 15px;
   color: var(--primary);
+  flex-shrink: 0;
+}
+.live-clock span {
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .user-profile-badge {
@@ -1074,6 +1095,8 @@ img {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .avatar-circle {
@@ -1096,12 +1119,14 @@ img {
 .user-info {
   display: flex;
   flex-direction: column;
+  white-space: nowrap;
 }
 
 .user-name {
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .user-role {
@@ -1109,12 +1134,22 @@ img {
   font-weight: 800;
   color: var(--text-muted);
   letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.user-subline {
+  white-space: nowrap;
 }
 
 .btn-logout {
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius-md);
   font-size: 0.82rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 /* POS MAIN LAYOUT (Tablet optimized 2-column split) */
