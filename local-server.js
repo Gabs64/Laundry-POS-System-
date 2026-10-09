@@ -390,20 +390,24 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 403, { success: false, error: 'Account is disabled. Contact your administrator.' });
         }
 
-        // STRICT SINGLE DEVICE ENFORCEMENT FOR ALL USERS (STAFF & OWNER)
-        const now = Date.now();
-        const HEARTBEAT_TIMEOUT_MS = 35000; // 35 seconds timeout for active heartbeats
-        const isCurrentlyOnline = user.activeSessionId && user.lastHeartbeat && (now - user.lastHeartbeat < HEARTBEAT_TIMEOUT_MS);
+        // STRICT SINGLE DEVICE ENFORCEMENT ONLY FOR STAFF ACCOUNTS (EXCLUDES OWNER / ADMIN)
+        const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
+        if (!isOwnerOrAdmin) {
+          const now = Date.now();
+          const HEARTBEAT_TIMEOUT_MS = 35000; // 35 seconds timeout for active heartbeats
+          const isCurrentlyOnline = user.activeSessionId && user.lastHeartbeat && (now - user.lastHeartbeat < HEARTBEAT_TIMEOUT_MS);
 
-        if (isCurrentlyOnline) {
-          return sendJson(res, 409, {
-            success: false,
-            error: `This account is currently active and logged in on another device. Strictly only 1 device is allowed at a time for all accounts. Please log out from the other device first.`
-          });
+          if (isCurrentlyOnline) {
+            return sendJson(res, 409, {
+              success: false,
+              error: `This staff account is currently active and logged in on another device. Strictly only 1 device is allowed at a time for staff accounts. Please log out from the other device first.`
+            });
+          }
         }
 
         // Issue new unique session ID
-        const sessionId = "sess-" + Date.now() + "-" + Math.random().toString(36).substr(2, 8);
+        const now = Date.now();
+        const sessionId = "sess-" + now + "-" + Math.random().toString(36).substr(2, 8);
         user.activeSessionId = sessionId;
         user.lastHeartbeat = now;
         user.isOnline = true;
@@ -443,8 +447,10 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 401, { success: false, active: false, reason: 'Account disabled or not found.' });
         }
 
-        // Check if session is still the authorized active session
-        if (user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
+        const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
+
+        // Check if session is still the authorized active session (for staff accounts)
+        if (!isOwnerOrAdmin && user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
           return sendJson(res, 200, {
             success: true,
             active: false,
@@ -453,7 +459,9 @@ const server = http.createServer(async (req, res) => {
         }
 
         // Refresh heartbeat
-        user.activeSessionId = sessionId || user.activeSessionId;
+        if (!isOwnerOrAdmin) {
+          user.activeSessionId = sessionId || user.activeSessionId;
+        }
         user.lastHeartbeat = Date.now();
         user.isOnline = true;
         saveServerData(dbData);
@@ -476,11 +484,14 @@ const server = http.createServer(async (req, res) => {
         const users = dbData.users || [];
         const user = users.find(u => u.id === userId);
 
-        if (user && (!sessionId || user.activeSessionId === sessionId)) {
-          user.activeSessionId = null;
-          user.lastHeartbeat = null;
-          user.isOnline = false;
-          saveServerData(dbData);
+        if (user) {
+          const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
+          if (!isOwnerOrAdmin || !sessionId || user.activeSessionId === sessionId) {
+            user.activeSessionId = null;
+            user.lastHeartbeat = null;
+            user.isOnline = false;
+            saveServerData(dbData);
+          }
         }
 
         return sendJson(res, 200, { success: true });
@@ -530,7 +541,9 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 401, { success: false, valid: false });
         }
 
-        if (user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
+        const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
+
+        if (!isOwnerOrAdmin && user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
           return sendJson(res, 200, { success: true, valid: false, reason: 'Session expired or active on another device.' });
         }
 

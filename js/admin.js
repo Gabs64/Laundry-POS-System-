@@ -1369,11 +1369,17 @@ const AdminPanel = {
       const initials = u.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
       const isSelf = u.id === App.getCurrentUser()?.id;
       const isMaster = u.isMaster || u.id === "usr-admin";
+      const isOwnerOrAdmin = isMaster || u.role === "ADMIN" || u.id === "usr-admin";
       const isOnlineNow = u.isOnline && u.lastHeartbeat && (Date.now() - u.lastHeartbeat < 45000);
 
-      const deviceStatusBadge = isOnlineNow
-        ? `<span class="badge badge-success" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(34, 197, 94, 0.15); border:1px solid rgba(34, 197, 94, 0.3); color:#22c55e;"><i data-lucide="radio" style="width:11px; height:11px;"></i> Active (1 Device)</span>`
-        : `<span class="badge badge-secondary" style="font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(148, 163, 184, 0.12); color:var(--text-muted);">Offline</span>`;
+      let deviceStatusBadge = "";
+      if (isOwnerOrAdmin) {
+        deviceStatusBadge = `<span class="badge badge-primary" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(56, 189, 248, 0.15); border:1px solid rgba(56, 189, 248, 0.3); color:#38bdf8;"><i data-lucide="layers" style="width:11px; height:11px;"></i> Multi-Device</span>`;
+      } else {
+        deviceStatusBadge = isOnlineNow
+          ? `<span class="badge badge-success" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(34, 197, 94, 0.15); border:1px solid rgba(34, 197, 94, 0.3); color:#22c55e;"><i data-lucide="radio" style="width:11px; height:11px;"></i> Active (1 Device)</span>`
+          : `<span class="badge badge-secondary" style="font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(148, 163, 184, 0.12); color:var(--text-muted);">Offline</span>`;
+      }
 
       html += `
         <div class="user-account-card ${isMaster ? 'master-admin-card' : ''}">
@@ -1393,7 +1399,7 @@ const AdminPanel = {
               <span class="role-badge ${u.role.toLowerCase()}">${u.role}</span>
             </div>
             <div class="user-meta-chip">
-              <span class="label">Device:</span>
+              <span class="label">Access:</span>
               ${deviceStatusBadge}
             </div>
           </div>
@@ -1401,7 +1407,7 @@ const AdminPanel = {
             <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editUser('${u.id}')">
               <i data-lucide="edit-3"></i> Edit
             </button>
-            ${isOnlineNow && !isSelf ? `
+            ${!isOwnerOrAdmin && isOnlineNow && !isSelf ? `
               <button type="button" class="btn btn-warning btn-sm" onclick="AdminPanel.forceDisconnectUser('${u.id}', '${u.fullName.replace(/'/g, "\\'")}')" title="Disconnect device to free login">
                 <i data-lucide="log-out"></i> Free Device
               </button>
