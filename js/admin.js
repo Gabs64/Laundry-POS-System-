@@ -160,7 +160,7 @@ const AdminPanel = {
       } else {
         let html = "";
         sales.slice(0, 6).forEach(s => {
-          const time = new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const time = new Date(s.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
           const itemCount = s.items.reduce((acc, it) => acc + it.quantity, 0);
           const status = (s.laundryStatus || 'RECEIVED').replace(/_/g, ' ');
           const weightDisplay = s.totalWeight ? `${s.totalWeight} kg` : `${itemCount} pcs`;
@@ -275,7 +275,7 @@ const AdminPanel = {
     sales.forEach(sale => {
       const currentStatus = sale.laundryStatus || "RECEIVED";
       const dueFormatted = sale.dueDate ? new Date(sale.dueDate).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
       }) : "Standard";
 
       const itemsSummary = sale.items.map(it => `${it.quantity}${it.unit || 'pc'} ${it.productName}`).join("<br>");
@@ -1023,7 +1023,9 @@ const AdminPanel = {
       } else {
         let html = "";
         logs.slice(0, 30).forEach(log => {
-          const date = new Date(log.createdAt).toLocaleString();
+          const date = new Date(log.createdAt).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+          });
           const isPositive = log.quantity > 0;
           html += `
             <tr>
@@ -1107,7 +1109,7 @@ const AdminPanel = {
     let html = "";
     sales.forEach(s => {
       const dateStr = new Date(s.createdAt).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
       });
       const itemsStr = s.items.map(it => `${it.quantity}${it.unit || 'pc'} ${it.productName}`).join(", ");
       const status = (s.laundryStatus || 'RECEIVED').replace(/_/g, ' ');
@@ -1936,13 +1938,13 @@ const AdminPanel = {
       const d = new Date(r.date + "T00:00:00");
       const dateFormatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", weekday: "short" });
 
-      const timeInFmt = r.timeIn ? new Date(r.timeIn).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--";
+      const timeInFmt = r.timeIn ? new Date(r.timeIn).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }) : "--";
 
       let timeOutFmt = "--";
       if (r.status === "CLOCKED_IN") {
         timeOutFmt = `<span class="badge badge-success" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="radio" style="width:12px; height:12px;"></i> Currently Clocked In</span>`;
       } else if (r.timeOut) {
-        timeOutFmt = new Date(r.timeOut).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        timeOutFmt = new Date(r.timeOut).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true });
       }
 
       let durationFmt = r.totalHoursFormatted || "--";
@@ -2062,8 +2064,8 @@ const AdminPanel = {
 
           const hrsDecimal = (dayMins / 60).toFixed(1);
           const cellBadgeBg = hasActive ? "var(--success)" : "var(--primary)";
-          const timeInStr = dayLogs[0].timeIn ? new Date(dayLogs[0].timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-          const timeOutStr = dayLogs[0].timeOut ? new Date(dayLogs[0].timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (hasActive ? 'Active' : '');
+          const timeInStr = dayLogs[0].timeIn ? new Date(dayLogs[0].timeIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '';
+          const timeOutStr = dayLogs[0].timeOut ? new Date(dayLogs[0].timeOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : (hasActive ? 'Active' : '');
 
           daysCells += `<td class="text-center" style="padding:4px 2px; ${isToday ? 'background:rgba(2,132,199,0.1);' : ''}">
             <span class="matrix-cell-pill" style="display:inline-block; font-size:0.7rem; font-weight:700; padding:2px 4px; border-radius:4px; background:${cellBadgeBg}; color:#fff; cursor:help;" title="${dateStr}: ${timeInStr} - ${timeOutStr} (${AttendanceManager.formatDuration(dayMins)})">
@@ -2231,8 +2233,8 @@ const AdminPanel = {
 
     let csv = "Date,Staff Name,User Role,Time In,Time Out,Total Minutes,Total Hours,Status,Notes\n";
     records.forEach(r => {
-      const tIn = r.timeIn ? new Date(r.timeIn).toLocaleString() : "";
-      const tOut = r.timeOut ? new Date(r.timeOut).toLocaleString() : (r.status === "CLOCKED_IN" ? "Clocked In" : "");
+      const tIn = r.timeIn ? new Date(r.timeIn).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : "";
+      const tOut = r.timeOut ? new Date(r.timeOut).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : (r.status === "CLOCKED_IN" ? "Clocked In" : "");
       csv += `"${r.date}","${r.userName}","${r.userRole}","${tIn}","${tOut}",${r.totalMinutes || 0},"${r.totalHoursFormatted || ''}","${r.status}","${(r.notes || '').replace(/"/g, '""')}"\n`;
     });
 

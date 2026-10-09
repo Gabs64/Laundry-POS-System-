@@ -214,9 +214,10 @@ const App = {
         day: 'numeric',
         year: 'numeric'
       }) + " • " + now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
+        hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
+        hour12: true
       });
 
       const clockPos = document.getElementById("clock-display");

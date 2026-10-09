@@ -101,7 +101,7 @@ function checkAutoDisableUsers(dbData) {
             u.lastHeartbeat = null;
             u.isOnline = false;
             u.autoDisabledAt = currentIso;
-            u.autoDisableReason = `Scheduled auto-disable time reached (${new Date(u.autoDisableAt).toLocaleString()})`;
+            u.autoDisableReason = `Scheduled auto-disable time reached (${new Date(u.autoDisableAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })})`;
             modified = true;
           }
         }

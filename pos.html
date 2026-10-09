@@ -781,8 +781,8 @@
             const tOut = document.getElementById("timeout-info-timeout");
             const tDur = document.getElementById("timeout-info-duration");
             if (shiftInfo && tIn && tOut && tDur) {
-              tIn.textContent = punchRecord.timeIn ? new Date(punchRecord.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--";
-              tOut.textContent = punchRecord.timeOut ? new Date(punchRecord.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now";
+              tIn.textContent = punchRecord.timeIn ? new Date(punchRecord.timeIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : "--";
+              tOut.textContent = punchRecord.timeOut ? new Date(punchRecord.timeOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : "Just now";
               tDur.textContent = punchRecord.totalHoursFormatted || (typeof AttendanceManager !== "undefined" && punchRecord.totalMinutes ? AttendanceManager.formatDuration(punchRecord.totalMinutes) : "--");
               shiftInfo.style.display = "block";
             }
@@ -868,7 +868,7 @@
             attBadge.textContent = "Owner Session";
             attBadge.style.display = "inline-block";
           } else if (activeAtt && activeAtt.timeIn) {
-            const t = new Date(activeAtt.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const t = new Date(activeAtt.timeIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
             attBadge.textContent = `In: ${t}`;
             attBadge.style.display = "inline-block";
           } else {
@@ -894,7 +894,7 @@
             month: 'short', day: 'numeric', year: 'numeric'
           });
           const timePart = now.toLocaleTimeString('en-US', {
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
+            hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
           });
           const clock = document.getElementById("clock-display");
           if (clock) {

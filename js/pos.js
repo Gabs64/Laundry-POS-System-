@@ -449,7 +449,7 @@ const CashierPOS = {
     const hours = parseInt(select.value) || 48;
     const dueDate = this.calculateDueDate(hours);
     const formatted = dueDate.toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
     });
     preview.textContent = formatted;
   },
@@ -775,10 +775,10 @@ const CashierPOS = {
     const data = StorageManager.get();
     const settings = data.settings || {};
     const dateFormatted = new Date(sale.createdAt).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
     });
     const dueFormatted = sale.dueDate ? new Date(sale.dueDate).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
     }) : "48 Hours";
 
     let itemsHtml = "";
@@ -897,8 +897,12 @@ const CashierPOS = {
 
     const data = StorageManager.get();
     const settings = data.settings || {};
-    const dateFormatted = new Date(sale.createdAt).toLocaleString();
-    const dueFormatted = sale.dueDate ? new Date(sale.dueDate).toLocaleString() : "48 Hours";
+    const dateFormatted = new Date(sale.createdAt).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+    });
+    const dueFormatted = sale.dueDate ? new Date(sale.dueDate).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+    }) : "48 Hours";
 
     let text = `================================\n`;
     text += `   ${settings.storeName || 'Brand Name POS'}\n`;
@@ -1034,7 +1038,7 @@ const CashierPOS = {
       const currentStatus = sale.laundryStatus || "RECEIVED";
       const statusInfo = statusMap[currentStatus] || statusMap.RECEIVED;
       const dueFormatted = sale.dueDate ? new Date(sale.dueDate).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
       }) : "Standard";
 
       const itemsSummary = sale.items.map(it => `${it.quantity}${it.unit || 'pc'} ${it.productName}`).join(", ");
@@ -1199,7 +1203,7 @@ const CashierPOS = {
         let html = "";
         sales.slice(0, 15).forEach(s => {
           const itemCount = s.items.reduce((sum, it) => sum + it.quantity, 0);
-          const time = new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const time = new Date(s.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
           const status = (s.laundryStatus || 'RECEIVED').replace(/_/g, ' ');
 
           html += `
