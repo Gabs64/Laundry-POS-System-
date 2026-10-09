@@ -34,7 +34,7 @@
       </div>
 
       <!-- Login Form -->
-      <form id="login-form" class="login-form" onsubmit="AppAuth.handleLogin(event)">
+      <form id="login-form" class="login-form" onsubmit="event.preventDefault(); AppAuth.handleLogin(event); return false;">
         <div class="form-group">
           <label for="login-username"><i data-lucide="user"></i> Username</label>
           <div class="input-with-icon">
@@ -91,6 +91,8 @@
           if (storeTaglineEl && freshData.settings?.tagline) {
             storeTaglineEl.textContent = freshData.settings.tagline;
           }
+        } catch(e) {}
+
         // Check if redirected due to forced timeout / logout
         const logoutReason = sessionStorage.getItem("LOGOUT_REASON");
         if (logoutReason) {
@@ -101,11 +103,23 @@
           }, 300);
         }
 
+        const form = document.getElementById("login-form");
+        if (form) {
+          form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.handleLogin(e);
+          });
+        }
+
         if (window.lucide) lucide.createIcons();
       },
 
       async handleLogin(e) {
-        e.preventDefault();
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         const user = document.getElementById("login-username").value.trim();
         const pass = document.getElementById("login-password").value;
         const btn = document.getElementById("btn-login");
@@ -160,13 +174,10 @@
         Sound.playSuccess();
         this.showToast(`Welcome back, ${user.fullName}! Redirecting...`, "success");
 
+        const targetUrl = user.role === "ADMIN" ? "admin.html" : "pos.html";
         setTimeout(() => {
-          if (user.role === "ADMIN") {
-            window.location.href = "admin.html";
-          } else {
-            window.location.href = "pos.html";
-          }
-        }, 500);
+          window.location.replace(targetUrl);
+        }, 300);
       },
 
       showToast(message, type = "info") {
