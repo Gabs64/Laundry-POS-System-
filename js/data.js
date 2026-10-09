@@ -226,7 +226,7 @@ const AttendanceManager = {
   },
 
   recordTimeIn(user) {
-    if (!user || !user.id) return null;
+    if (!user || !user.id || user.role === "ADMIN") return null;
     const data = StorageManager.get();
     if (!data.attendance) data.attendance = [];
 
@@ -274,7 +274,7 @@ const AttendanceManager = {
   },
 
   recordTimeOut(user) {
-    if (!user || !user.id) return null;
+    if (!user || !user.id || user.role === "ADMIN") return null;
     const data = StorageManager.get();
     if (!data.attendance) return null;
 

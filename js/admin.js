@@ -1490,8 +1490,10 @@ const AdminPanel = {
      ========================================================= */
   renderAttendance() {
     const data = StorageManager.get();
-    const users = data.users || [];
-    const allAttendance = data.attendance || [];
+    const allUsers = data.users || [];
+    // Focus strictly on staff/employees (exclude ADMIN accounts)
+    const users = allUsers.filter(u => u.role !== "ADMIN");
+    const allAttendance = (data.attendance || []).filter(a => a.userRole !== "ADMIN");
 
     // Ensure attendanceMonth is set
     if (!this.attendanceMonth) {
@@ -1504,6 +1506,9 @@ const AdminPanel = {
     if (staffSelect) {
       const currentVal = staffSelect.value || this.attendanceStaffFilter || "ALL";
       let optHtml = `<option value="ALL">All Staff Members (${users.length})</option>`;
+      if (users.length === 0) {
+        optHtml = `<option value="ALL">All Staff Members (0)</option>`;
+      }
       users.forEach(u => {
         optHtml += `<option value="${u.id}">${u.fullName} (${u.role})</option>`;
       });
@@ -1734,12 +1739,19 @@ const AdminPanel = {
     thHtml += `<th class="text-center" style="min-width:70px;">Days</th><th class="text-center" style="min-width:85px;">Total Hrs</th></tr>`;
     thead.innerHTML = thHtml;
 
-    // Filter staff if a specific staff filter is active
+    // Filter staff if a specific staff filter is active (focus strictly on staff)
     const selectedStaff = document.getElementById("admin-attendance-staff-filter")?.value || "ALL";
-    const staffList = selectedStaff === "ALL" ? users : users.filter(u => u.id === selectedStaff);
+    const staffList = (selectedStaff === "ALL" ? users : users.filter(u => u.id === selectedStaff)).filter(u => u.role !== "ADMIN");
 
     if (staffList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="${totalDays + 3}" class="text-center py-4 text-muted">No staff found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${totalDays + 3}" class="text-center py-5 text-muted">
+        <i data-lucide="users" style="width:36px; height:36px; stroke-width:1.5; margin-bottom:8px; display:inline-block;"></i>
+        <p style="margin:0 0 10px;">No staff members registered yet.</p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="AdminPanel.switchTab('cashiers')">
+          <i data-lucide="user-plus"></i> Add Staff Member
+        </button>
+      </td></tr>`;
+      if (window.lucide) lucide.createIcons();
       return;
     }
 

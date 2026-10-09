@@ -664,9 +664,17 @@
 
         const activeAtt = typeof AttendanceManager !== "undefined" ? AttendanceManager.getActiveRecord(u.id) : null;
         const attBadge = document.getElementById("pos-attendance-time");
-        if (attBadge && activeAtt && activeAtt.timeIn) {
-          const t = new Date(activeAtt.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          attBadge.textContent = `In: ${t}`;
+        if (attBadge) {
+          if (u.role === "ADMIN") {
+            attBadge.textContent = "Owner Session";
+            attBadge.style.display = "inline-block";
+          } else if (activeAtt && activeAtt.timeIn) {
+            const t = new Date(activeAtt.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            attBadge.textContent = `In: ${t}`;
+            attBadge.style.display = "inline-block";
+          } else {
+            attBadge.style.display = "none";
+          }
         }
 
         this.updateStoreBrand();
