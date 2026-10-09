@@ -1369,34 +1369,36 @@ const AdminPanel = {
       const isMaster = u.isMaster || u.id === "usr-admin";
 
       html += `
-        <div class="user-account-card ${isMaster ? 'master-admin-card' : ''}" style="${isMaster ? 'border: 1px solid rgba(245, 158, 11, 0.4); background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, var(--bg-surface) 100%);' : ''}">
+        <div class="user-account-card ${isMaster ? 'master-admin-card' : ''}">
           <div class="user-card-header">
-            <div class="avatar-circle large" style="${isMaster ? 'background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 0 14px rgba(245, 158, 11, 0.4); font-weight: bold;' : ''}">${initials}</div>
-            <div>
-              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <h4 style="margin:0;">${u.fullName}</h4>
-                ${isMaster ? `<span class="badge" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:9999px; text-transform:uppercase; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Mother Account</span>` : ''}
+            <div class="user-card-avatar ${isMaster ? 'gold' : ''}">${initials}</div>
+            <div class="user-card-info">
+              <div class="user-card-title-row">
+                <h4 class="user-card-name">${u.fullName}</h4>
+                ${isMaster ? `<span class="mother-badge"><i data-lucide="crown" style="width:11px; height:11px;"></i> Mother Account</span>` : ''}
               </div>
-              <span class="user-username">@${u.username}</span>
+              <span class="user-card-username">@${u.username}</span>
             </div>
           </div>
           <div class="user-card-body">
-            <div class="user-meta-row">
+            <div class="user-meta-chip">
               <span class="label">Role:</span>
               <span class="role-badge ${u.role.toLowerCase()}">${u.role}</span>
             </div>
-            <div class="user-meta-row">
+            <div class="user-meta-chip">
               <span class="label">Status:</span>
               <span class="badge-pill ${u.status === 'active' ? 'badge-active' : 'badge-disabled'}">${u.status.toUpperCase()}</span>
             </div>
           </div>
-          <div class="user-card-footer" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <button class="btn btn-secondary btn-sm" onclick="AdminPanel.editUser('${u.id}')"><i data-lucide="edit-2"></i> Edit</button>
+          <div class="user-card-footer">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editUser('${u.id}')">
+              <i data-lucide="edit-3"></i> Edit
+            </button>
             ${isMaster 
-              ? `<span style="font-size:0.75rem; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px; font-weight:600;"><i data-lucide="lock" style="width:12px; height:12px; color:var(--warning);"></i> Non-Removable</span>` 
+              ? `<span class="locked-badge"><i data-lucide="shield-check" style="width:13px; height:13px; color:var(--warning);"></i> Protected Root</span>` 
               : (!isSelf 
-                ? `<button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteUser('${u.id}')"><i data-lucide="trash-2"></i> Delete</button>` 
-                : `<small class="text-muted">Current user</small>`
+                ? `<button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteUser('${u.id}')"><i data-lucide="trash-2"></i> Delete</button>` 
+                : `<small class="text-muted font-italic">Active Session</small>`
               )
             }
           </div>
