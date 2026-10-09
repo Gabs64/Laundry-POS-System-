@@ -21,12 +21,20 @@ The system consists of **two dedicated standalone sites** connected through real
 
 ---
 
-## 🚀 Deploying to Railway
+## 🚀 Deploying to Railway (With Persistent Storage)
 
 1. Push this repository to GitHub.
 2. In [Railway.app](https://railway.app), click **+ New Project** &rarr; **Deploy from GitHub repo**.
 3. Select this repository.
-4. Railway will automatically detect the Node.js project, execute `npm start` (`node local-server.js`), and assign a public HTTPS domain.
+4. **Attach a Persistent Volume (Recommended):**
+   * In your Railway Service dashboard, click **+ Add Volume** (or click your service &rarr; **Settings** &rarr; **Volumes** &rarr; **+ Add Volume**).
+   * Set the **Mount Path** to:
+     ```
+     /data
+     ```
+   * *That's it!* All products, orders, categories, attendance logs, and staff data will be permanently stored on this volume across redeployments and synced in real-time across all connected devices (cashier tablets, admin laptops, phones).
+5. Generate a Public Domain in **Networking** &rarr; **Generate Domain** to access your POS system from any browser.
+
 
 ---
 

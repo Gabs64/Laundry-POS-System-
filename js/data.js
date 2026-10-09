@@ -1,7 +1,7 @@
 /**
  * POS System - Data & Storage Management
- * Clean Production Schema for Railway deployment.
- * Owner starts with a completely clean database (products, sales, categories, logs, attendance).
+ * Supports Client-Side instant caching + Seamless Server-Side REST API Persistence for Railway Volumes.
+ * Enables real-time multi-device sync between Cashier terminals and Admin dashboards.
  */
 
 const SEED_DATA = {
@@ -17,11 +17,8 @@ const SEED_DATA = {
     defaultTurnaroundHours: 24,
     receiptFooter: "Thank you for your business! Please present this Claim Stub upon pickup."
   },
-
   categories: [],
-
   products: [],
-
   users: [
     {
       id: "usr-admin",
@@ -33,20 +30,26 @@ const SEED_DATA = {
       createdAt: "2026-01-01T00:00:00.000Z"
     }
   ],
-
   sales: [],
-
   inventoryLogs: [],
-
   attendance: []
 };
 
 const STORAGE_KEY = "CLEAN_POS_SYSTEM_DATA_V1";
+const LAST_SYNC_KEY = "POS_SERVER_LAST_SYNC_TS";
 
 /**
  * Storage Manager Module
  */
 const StorageManager = {
+  _isSyncing: false,
+  _syncIntervalId: null,
+
+  init() {
+    this.fetchFromServer();
+    this.startAutoSync();
+  },
+
   get() {
     try {
       let stored = localStorage.getItem(STORAGE_KEY);
@@ -75,6 +78,10 @@ const StorageManager = {
   save(data) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+
+      // Send to server backend asynchronously
+      this.pushToServer(data);
       return true;
     } catch (e) {
       console.error("Storage save error:", e);
@@ -82,8 +89,84 @@ const StorageManager = {
     }
   },
 
-  resetToDefault() {
-    this.save(SEED_DATA);
+  async pushToServer(data) {
+    try {
+      const res = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.lastUpdated) {
+          localStorage.setItem(LAST_SYNC_KEY, result.lastUpdated.toString());
+        }
+      }
+    } catch (err) {
+      // Offline or network error - data is still safe in localStorage
+      console.warn("Server sync push pending/offline:", err.message);
+    }
+  },
+
+  async fetchFromServer(forceRefresh = false) {
+    if (this._isSyncing) return;
+    this._isSyncing = true;
+
+    try {
+      const res = await fetch("/api/data");
+      if (!res.ok) throw new Error("Server responded with " + res.status);
+
+      const result = await res.json();
+      if (result.success && result.data) {
+        const localData = localStorage.getItem(STORAGE_KEY);
+        const serverJson = JSON.stringify(result.data);
+
+        // Check if server data is different or force refresh requested
+        if (forceRefresh || localData !== serverJson) {
+          localStorage.setItem(STORAGE_KEY, serverJson);
+          if (result.lastUpdated) {
+            localStorage.setItem(LAST_SYNC_KEY, result.lastUpdated.toString());
+          }
+
+          // Notify all active page components that new data arrived
+          window.dispatchEvent(new CustomEvent("pos-data-synced", { detail: result.data }));
+        }
+      }
+    } catch (err) {
+      // Backend not running or offline; keep using local data
+    } finally {
+      this._isSyncing = false;
+    }
+  },
+
+  startAutoSync() {
+    if (this._syncIntervalId) return;
+
+    // Check server every 5 seconds for updates made from other devices
+    this._syncIntervalId = setInterval(() => {
+      this.fetchFromServer();
+    }, 5000);
+
+    // Also sync immediately when user switches tabs/focuses back to window
+    window.addEventListener("focus", () => {
+      this.fetchFromServer();
+    });
+  },
+
+  async resetToDefault() {
+    try {
+      const res = await fetch("/api/reset", { method: "POST" });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.data) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
+          return result.data;
+        }
+      }
+    } catch (e) {}
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_DATA));
+    this.pushToServer(SEED_DATA);
     return JSON.parse(JSON.stringify(SEED_DATA));
   },
 
@@ -113,6 +196,13 @@ const StorageManager = {
     }
   }
 };
+
+// Initialize server sync automatically on page load
+if (typeof window !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => {
+    StorageManager.init();
+  });
+}
 
 /**
  * Attendance Manager Module

@@ -19,6 +19,22 @@ const AdminPanel = {
   init() {
     this.renderDashboard();
     this.populateCategorySelects();
+
+    if (!this._syncListenerAttached) {
+      this._syncListenerAttached = true;
+      window.addEventListener("pos-data-synced", () => {
+        this.populateCategorySelects();
+        if (this.currentTab === "dashboard") this.renderDashboard();
+        else if (this.currentTab === "orders") this.renderLaundryOrders();
+        else if (this.currentTab === "catalog") this.renderProducts();
+        else if (this.currentTab === "categories") this.renderCategories();
+        else if (this.currentTab === "inventory") this.renderInventory();
+        else if (this.currentTab === "sales") this.renderSalesHistory();
+        else if (this.currentTab === "reports") this.renderReports();
+        else if (this.currentTab === "cashiers") this.renderUsers();
+        else if (this.currentTab === "attendance") this.renderAttendance();
+      });
+    }
   },
 
   switchTab(tabName, options = {}) {

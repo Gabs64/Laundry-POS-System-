@@ -25,6 +25,15 @@ const CashierPOS = {
     this.setupSearchInput();
     this.updateDueDateDisplay();
     this.updateLaundryTrackerBadge();
+
+    if (!this._syncListenerAttached) {
+      this._syncListenerAttached = true;
+      window.addEventListener("pos-data-synced", () => {
+        this.renderCategoryPills();
+        this.renderProducts();
+        this.updateLaundryTrackerBadge();
+      });
+    }
   },
 
   setupSearchInput() {

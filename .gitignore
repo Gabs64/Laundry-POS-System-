@@ -8,3 +8,7 @@ npm-debug.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Database storage files
+data/*.json
+
