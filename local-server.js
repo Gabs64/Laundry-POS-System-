@@ -53,6 +53,7 @@ const CLEAN_SEED_DATA = {
       password: "admin123",
       role: "ADMIN",
       status: "active",
+      isMaster: true,
       createdAt: "2026-01-01T00:00:00.000Z"
     }
   ],
@@ -71,6 +72,15 @@ function loadServerData() {
       const raw = fs.readFileSync(DB_FILE, 'utf8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
+        // Ensure master admin is always present
+        if (!Array.isArray(parsed.users) || parsed.users.length === 0) {
+          parsed.users = [...CLEAN_SEED_DATA.users];
+        } else {
+          const hasAdmin = parsed.users.some(u => u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN');
+          if (!hasAdmin) {
+            parsed.users.unshift({ ...CLEAN_SEED_DATA.users[0] });
+          }
+        }
         cachedData = parsed;
         const stat = fs.statSync(DB_FILE);
         lastUpdatedTimestamp = stat.mtimeMs || Date.now();
@@ -89,6 +99,16 @@ function loadServerData() {
 
 function saveServerData(data) {
   try {
+    // Preserve root Master Admin account from being deleted
+    if (!Array.isArray(data.users) || data.users.length === 0) {
+      data.users = [...CLEAN_SEED_DATA.users];
+    } else {
+      const hasAdmin = data.users.some(u => u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN');
+      if (!hasAdmin) {
+        data.users.unshift({ ...CLEAN_SEED_DATA.users[0] });
+      }
+    }
+
     cachedData = data;
     lastUpdatedTimestamp = Date.now();
     const tempFile = DB_FILE + '.tmp.' + Date.now();

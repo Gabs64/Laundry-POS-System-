@@ -1366,13 +1366,17 @@ const AdminPanel = {
     users.forEach(u => {
       const initials = u.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
       const isSelf = u.id === App.getCurrentUser()?.id;
+      const isMaster = u.isMaster || u.id === "usr-admin";
 
       html += `
-        <div class="user-account-card">
+        <div class="user-account-card ${isMaster ? 'master-admin-card' : ''}" style="${isMaster ? 'border: 1px solid rgba(245, 158, 11, 0.4); background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, var(--bg-surface) 100%);' : ''}">
           <div class="user-card-header">
-            <div class="avatar-circle large">${initials}</div>
+            <div class="avatar-circle large" style="${isMaster ? 'background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 0 14px rgba(245, 158, 11, 0.4); font-weight: bold;' : ''}">${initials}</div>
             <div>
-              <h4>${u.fullName}</h4>
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <h4 style="margin:0;">${u.fullName}</h4>
+                ${isMaster ? `<span class="badge" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:9999px; text-transform:uppercase; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Mother Account</span>` : ''}
+              </div>
               <span class="user-username">@${u.username}</span>
             </div>
           </div>
@@ -1386,9 +1390,15 @@ const AdminPanel = {
               <span class="badge-pill ${u.status === 'active' ? 'badge-active' : 'badge-disabled'}">${u.status.toUpperCase()}</span>
             </div>
           </div>
-          <div class="user-card-footer">
+          <div class="user-card-footer" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
             <button class="btn btn-secondary btn-sm" onclick="AdminPanel.editUser('${u.id}')"><i data-lucide="edit-2"></i> Edit</button>
-            ${!isSelf ? `<button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteUser('${u.id}')"><i data-lucide="trash-2"></i> Delete</button>` : `<small class="text-muted">Current user</small>`}
+            ${isMaster 
+              ? `<span style="font-size:0.75rem; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px; font-weight:600;"><i data-lucide="lock" style="width:12px; height:12px; color:var(--warning);"></i> Non-Removable</span>` 
+              : (!isSelf 
+                ? `<button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteUser('${u.id}')"><i data-lucide="trash-2"></i> Delete</button>` 
+                : `<small class="text-muted">Current user</small>`
+              )
+            }
           </div>
         </div>
       `;
@@ -1398,19 +1408,36 @@ const AdminPanel = {
     if (window.lucide) lucide.createIcons();
   },
 
-  openUserModal(isEdit = false) {
+  openUserModal(isEdit = false, isMaster = false) {
     const modal = document.getElementById("modal-user-form");
     const title = document.getElementById("user-modal-title");
     const pwdHelp = document.getElementById("user-pwd-help");
     const pwdInput = document.getElementById("user-password");
+    const roleSelect = document.getElementById("user-role");
+    const statusSelect = document.getElementById("user-status");
 
-    if (title) title.textContent = isEdit ? "Edit Staff Account" : "Add Staff Account";
+    if (title) {
+      if (isMaster) title.textContent = "Edit Master Account (Owner)";
+      else title.textContent = isEdit ? "Edit Staff Account" : "Add Staff Account";
+    }
     if (pwdHelp) pwdHelp.style.display = isEdit ? "block" : "none";
     if (pwdInput) pwdInput.required = !isEdit;
+
+    // Lock role and status for Master Admin
+    if (roleSelect) {
+      roleSelect.disabled = isMaster;
+      if (isMaster) roleSelect.value = "ADMIN";
+    }
+    if (statusSelect) {
+      statusSelect.disabled = isMaster;
+      if (isMaster) statusSelect.value = "active";
+    }
 
     if (!isEdit) {
       document.getElementById("user-form").reset();
       document.getElementById("user-id").value = "";
+      if (roleSelect) roleSelect.disabled = false;
+      if (statusSelect) statusSelect.disabled = false;
     }
 
     if (modal) modal.classList.add("active");
@@ -1426,7 +1453,8 @@ const AdminPanel = {
     const u = (data.users || []).find(user => user.id === id);
     if (!u) return;
 
-    this.openUserModal(true);
+    const isMaster = u.isMaster || u.id === "usr-admin";
+    this.openUserModal(true, isMaster);
     document.getElementById("user-id").value = u.id;
     document.getElementById("user-fullname").value = u.fullName;
     document.getElementById("user-username").value = u.username;
@@ -1441,12 +1469,15 @@ const AdminPanel = {
     const userId = document.getElementById("user-id").value;
     const pwd = document.getElementById("user-password").value;
 
+    const isMaster = userId === "usr-admin" || (userId && (data.users.find(u => u.id === userId)?.isMaster));
+
     const payload = {
       id: userId || "usr-" + Date.now(),
       fullName: document.getElementById("user-fullname").value.trim(),
       username: document.getElementById("user-username").value.trim().toLowerCase(),
-      role: document.getElementById("user-role").value,
-      status: document.getElementById("user-status").value,
+      role: isMaster ? "ADMIN" : document.getElementById("user-role").value,
+      status: isMaster ? "active" : document.getElementById("user-status").value,
+      isMaster: !!isMaster,
       createdAt: new Date().toISOString()
     };
 
@@ -1472,6 +1503,12 @@ const AdminPanel = {
     const data = StorageManager.get();
     const u = (data.users || []).find(user => user.id === id);
     if (!u) return;
+
+    if (u.isMaster || u.id === "usr-admin" || u.role === "ADMIN") {
+      Sound.playError();
+      App.showToast("The Mother Admin account is the permanent root account and cannot be deleted.", "danger");
+      return;
+    }
 
     App.showConfirmModal(
       `Delete User "${u.fullName}"?`,

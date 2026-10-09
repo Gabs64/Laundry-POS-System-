@@ -27,6 +27,7 @@ const SEED_DATA = {
       password: "admin123",
       role: "ADMIN",
       status: "active",
+      isMaster: true,
       createdAt: "2026-01-01T00:00:00.000Z"
     }
   ],
@@ -64,8 +65,15 @@ const StorageManager = {
       if (!Array.isArray(parsed.sales)) parsed.sales = [];
       if (!Array.isArray(parsed.inventoryLogs)) parsed.inventoryLogs = [];
       if (!Array.isArray(parsed.attendance)) parsed.attendance = [];
+      
+      // Ensure master admin account is permanently preserved
       if (!Array.isArray(parsed.users) || parsed.users.length === 0) {
         parsed.users = [...SEED_DATA.users];
+      } else {
+        const hasAdmin = parsed.users.some(u => u.isMaster || u.id === "usr-admin" || u.role === "ADMIN");
+        if (!hasAdmin) {
+          parsed.users.unshift({ ...SEED_DATA.users[0] });
+        }
       }
 
       return parsed;
