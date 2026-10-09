@@ -615,7 +615,15 @@
             this.updateStoreBrand();
             CashierPOS.updateLaundryTrackerBadge();
           }
+        // Listen for database sync events to instantly detect admin actions (e.g. Time-Out)
+        window.addEventListener("pos-data-synced", (e) => {
+          this.validateSessionState(e.detail);
         });
+
+        // Periodic session heartbeat (every 3 seconds)
+        setInterval(() => {
+          this.validateSessionState();
+        }, 3000);
 
         CashierPOS.init();
         if (window.lucide) lucide.createIcons();
@@ -640,6 +648,49 @@
         }
 
         this.updateHeader();
+      },
+
+      validateSessionState(freshData) {
+        if (!this.currentUser || this.currentUser.role === "ADMIN") return;
+        const data = freshData || StorageManager.get();
+
+        // 1. Check if user account was deleted or disabled by admin
+        const dbUser = (data.users || []).find(u => u.id === this.currentUser.id);
+        if (!dbUser || dbUser.status === "disabled") {
+          this.forceLogout("Your account has been deactivated or removed by the Administrator.");
+          return;
+        }
+
+        // 2. Check if active attendance punch is still CLOCKED_IN
+        const activeAtt = (data.attendance || []).find(a => a.userId === this.currentUser.id && a.status === "CLOCKED_IN");
+        if (!activeAtt) {
+          this.forceLogout("You have been timed out by the Administrator. Your session has ended.");
+          return;
+        }
+
+        this.updateHeader();
+      },
+
+      forceLogout(reason = "You have been logged out by the Administrator.") {
+        if (this._isLoggingOut) return;
+        this._isLoggingOut = true;
+
+        localStorage.removeItem("POS_ACTIVE_USER");
+        sessionStorage.removeItem("POS_ACTIVE_USER");
+        localStorage.removeItem("POS_ACTIVE_ATTENDANCE_ID");
+        sessionStorage.setItem("LOGOUT_REASON", reason);
+
+        if (typeof Sound !== "undefined" && Sound.playError) {
+          Sound.playError();
+        }
+
+        if (typeof App !== "undefined" && App.showToast) {
+          App.showToast(reason, "danger");
+        }
+
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 800);
       },
 
       updateHeader() {

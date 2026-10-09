@@ -91,7 +91,15 @@
           if (storeTaglineEl && freshData.settings?.tagline) {
             storeTaglineEl.textContent = freshData.settings.tagline;
           }
-        } catch(e) {}
+        // Check if redirected due to forced timeout / logout
+        const logoutReason = sessionStorage.getItem("LOGOUT_REASON");
+        if (logoutReason) {
+          sessionStorage.removeItem("LOGOUT_REASON");
+          setTimeout(() => {
+            if (typeof Sound !== "undefined" && Sound.playError) Sound.playError();
+            this.showToast(logoutReason, "danger");
+          }, 300);
+        }
 
         if (window.lucide) lucide.createIcons();
       },

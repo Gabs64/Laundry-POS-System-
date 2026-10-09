@@ -1976,11 +1976,12 @@ const AdminPanel = {
     const diffMs = new Date(record.timeOut) - new Date(record.timeIn);
     record.totalMinutes = Math.max(1, Math.round(diffMs / 60000));
     record.totalHoursFormatted = AttendanceManager.formatDuration(record.totalMinutes);
-    record.notes = (record.notes ? record.notes + " • " : "") + "Admin Time-Out";
+    record.notes = (record.notes ? record.notes + " • " : "") + "Admin Time-Out (Session Ended)";
 
     StorageManager.save(data);
     this.renderAttendance();
-    App.showToast(`Clocked out ${record.userName}`, "info");
+    Sound.playSuccess();
+    App.showToast(`Clocked out ${record.userName}. Account logged out from active device.`, "info");
   },
 
   confirmDeleteAttendance(recordId) {
