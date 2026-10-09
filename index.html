@@ -55,44 +55,36 @@
         </button>
       </form>
 
-      <!-- Direct Site Launchers / Quick Demo Logins -->
+      <!-- System Access & Initial Owner Login -->
       <div class="demo-accounts-box">
         <div class="demo-title">
-          Direct Site Access & Demo Logins:
+          System Portals:
         </div>
 
         <div class="portal-launch-grid mb-3">
-          <a href="pos.html" class="portal-launch-card cashier-card"
-            onclick="AppAuth.quickLogin('cashier', 'cashier123', event)">
-            <div class="launch-icon"><i data-lucide="shopping-cart"></i></div>
-            <div class="launch-text">
-              <strong>Open Cashier POS Site</strong>
-              <small>Terminal for cashier transactions</small>
-            </div>
-          </a>
-
           <a href="admin.html" class="portal-launch-card admin-card"
             onclick="AppAuth.quickLogin('admin', 'admin123', event)">
             <div class="launch-icon"><i data-lucide="shield-check"></i></div>
             <div class="launch-text">
-              <strong>Open Admin Dashboard Site</strong>
-              <small>Manage products, stock & reports</small>
+              <strong>Admin Dashboard</strong>
+              <small>Configure store, services, staff & reports</small>
+            </div>
+          </a>
+
+          <a href="pos.html" class="portal-launch-card cashier-card"
+            onclick="AppAuth.quickLogin('admin', 'admin123', event)">
+            <div class="launch-icon"><i data-lucide="shopping-cart"></i></div>
+            <div class="launch-text">
+              <strong>Cashier POS Terminal</strong>
+              <small>Point of sale transaction register</small>
             </div>
           </a>
         </div>
 
         <div class="demo-chips">
           <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('admin', 'admin123')">
-            <span class="role-badge admin">ADMIN</span>
+            <span class="role-badge admin">DEFAULT OWNER</span>
             <span class="user-meta">admin / admin123</span>
-          </button>
-          <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('cashier', 'cashier123')">
-            <span class="role-badge cashier">CASHIER</span>
-            <span class="user-meta">John Doe (cashier)</span>
-          </button>
-          <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('maria', 'cashier123')">
-            <span class="role-badge cashier">CASHIER</span>
-            <span class="user-meta">Maria Santos (maria)</span>
           </button>
         </div>
       </div>

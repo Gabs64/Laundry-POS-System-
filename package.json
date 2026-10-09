@@ -1,8 +1,9 @@
 {
-  "name": "aqua-fresh-pos",
+  "name": "brand-name-pos",
   "version": "2.0.0",
   "private": true,
   "scripts": {
+    "start": "node local-server.js",
     "build": "echo 'Static build ready'"
   }
 }

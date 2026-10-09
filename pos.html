@@ -71,11 +71,11 @@
         </a>
 
         <div class="user-profile-badge">
-          <div class="avatar-circle" id="pos-user-avatar">JD</div>
+          <div class="avatar-circle" id="pos-user-avatar">AD</div>
           <div class="user-info">
-            <span class="user-name" id="pos-user-name">John Doe</span>
+            <span class="user-name" id="pos-user-name">Administrator</span>
             <div class="user-subline" style="display:flex; align-items:center; gap:6px;">
-              <span class="user-role" id="pos-user-role">CASHIER</span>
+              <span class="user-role" id="pos-user-role">ADMIN</span>
               <span class="user-att-pill" id="pos-attendance-time" style="font-size:0.7rem; color:var(--success); background:var(--success-light); padding:1px 6px; border-radius:4px; font-weight:600;">Clocked In</span>
             </div>
           </div>
@@ -629,13 +629,14 @@
           } catch (e) {}
         }
 
-        // Fallback demo user if opened directly without prior login
+        // Fallback admin user if opened directly without prior login
         if (!this.currentUser) {
-          this.currentUser = {
-            id: "usr-2",
-            fullName: "John Doe",
-            username: "cashier",
-            role: "CASHIER"
+          const users = StorageManager.get().users || [];
+          this.currentUser = users[0] || {
+            id: "usr-admin",
+            fullName: "Administrator",
+            username: "admin",
+            role: "ADMIN"
           };
           localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(this.currentUser));
         }

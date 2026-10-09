@@ -337,7 +337,11 @@ const AdminPanel = {
 
     if (formSelect) {
       let html = "";
-      categories.forEach(c => { html += `<option value="${c.id}">${c.name}</option>`; });
+      if (categories.length === 0) {
+        html = `<option value="">-- No Categories (Add in Categories tab) --</option>`;
+      } else {
+        categories.forEach(c => { html += `<option value="${c.id}">${c.name}</option>`; });
+      }
       formSelect.innerHTML = html;
     }
 
@@ -551,12 +555,14 @@ const AdminPanel = {
             <td>${typeDisplay}</td>
             <td><span class="badge-pill ${p.status === 'active' ? 'badge-active' : 'badge-disabled'}">${p.status.toUpperCase()}</span></td>
             <td class="text-right">
-              <button class="btn btn-secondary btn-sm mr-1" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Item">
-                <i data-lucide="edit-2"></i>
-              </button>
-              <button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteProduct('${p.id}')" title="Delete Item">
-                <i data-lucide="trash-2"></i>
-              </button>
+              <div class="table-actions-flex">
+                <button class="btn btn-secondary btn-sm" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Item">
+                  <i data-lucide="edit-2"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteProduct('${p.id}')" title="Delete Item">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
             </td>
           </tr>
         `;
@@ -717,6 +723,21 @@ const AdminPanel = {
     const data = StorageManager.get();
     const categories = data.categories || [];
     const products = data.products || [];
+
+    if (categories.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3.5rem 1rem; background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-lg); color: var(--text-muted);">
+          <i data-lucide="folder-plus" style="width: 44px; height: 44px; stroke-width: 1.5; margin-bottom: 0.75rem; display: inline-block; color: var(--primary);"></i>
+          <h4 style="color: var(--text-primary); margin-bottom: 0.35rem;">No Service Categories Yet</h4>
+          <p style="margin: 0 0 1.25rem; font-size: 0.9rem;">Organize your laundry services by adding your first service category.</p>
+          <button type="button" class="btn btn-primary btn-sm" onclick="AdminPanel.openCategoryModal()">
+            <i data-lucide="plus"></i> Add Service Category
+          </button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
 
     let html = "";
     categories.forEach(cat => {
@@ -1648,23 +1669,26 @@ const AdminPanel = {
           <td>${statusBadge}</td>
           <td><small class="text-muted">${r.notes || "—"}</small></td>
           <td class="text-right">
-            ${r.status === "CLOCKED_IN" ? `
-              <button type="button" class="btn btn-warning btn-sm mr-1" onclick="AdminPanel.manualClockOut('${r.id}')" title="Force Time-Out Now">
-                <i data-lucide="log-out"></i> Time-Out
+            <div class="table-actions-flex">
+              ${r.status === "CLOCKED_IN" ? `
+                <button type="button" class="btn btn-warning btn-sm" onclick="AdminPanel.manualClockOut('${r.id}')" title="Force Time-Out Now">
+                  <i data-lucide="log-out"></i> Time-Out
+                </button>
+              ` : ''}
+              <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.openAttendanceModal('${r.id}')" title="Edit Punch Log">
+                <i data-lucide="edit-2"></i>
               </button>
-            ` : ''}
-            <button type="button" class="btn btn-secondary btn-sm mr-1" onclick="AdminPanel.openAttendanceModal('${r.id}')" title="Edit Punch Log">
-              <i data-lucide="edit-2"></i>
-            </button>
-            <button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteAttendance('${r.id}')" title="Delete Log">
-              <i data-lucide="trash-2"></i>
-            </button>
+              <button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteAttendance('${r.id}')" title="Delete Log">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
     });
 
     tbody.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
   },
 
   renderAttendanceMatrix(records, users, year, month) {

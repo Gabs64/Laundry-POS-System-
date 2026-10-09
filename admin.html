@@ -1352,10 +1352,11 @@
           } catch (e) { }
         }
 
-        // Fallback admin demo user if opened directly without prior login
+        // Fallback admin user if opened directly without prior login
         if (!this.currentUser) {
-          this.currentUser = {
-            id: "usr-1",
+          const users = StorageManager.get().users || [];
+          this.currentUser = users.find(u => u.role === "ADMIN") || users[0] || {
+            id: "usr-admin",
             fullName: "Administrator",
             username: "admin",
             role: "ADMIN"
