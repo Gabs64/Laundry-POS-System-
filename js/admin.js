@@ -1371,6 +1371,7 @@ const AdminPanel = {
       const isMaster = u.isMaster || u.id === "usr-admin";
       const isOwnerOrAdmin = isMaster || u.role === "ADMIN" || u.id === "usr-admin";
       const isOnlineNow = u.isOnline && u.lastHeartbeat && (Date.now() - u.lastHeartbeat < 45000);
+      const isDisabled = u.status === "disabled";
 
       let deviceStatusBadge = "";
       if (isOwnerOrAdmin) {
@@ -1381,8 +1382,31 @@ const AdminPanel = {
           : `<span class="badge badge-secondary" style="font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(148, 163, 184, 0.12); color:var(--text-muted);">Offline</span>`;
       }
 
+      let statusBadge = "";
+      if (isDisabled) {
+        statusBadge = `<span class="badge badge-danger" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.3); color:#ef4444;"><i data-lucide="user-x" style="width:11px; height:11px;"></i> Disabled</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-success" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(16, 185, 129, 0.15); border:1px solid rgba(16, 185, 129, 0.3); color:#10b981;"><i data-lucide="user-check" style="width:11px; height:11px;"></i> Active</span>`;
+      }
+
+      let autoDisableNotice = "";
+      if (!isOwnerOrAdmin) {
+        if (isDisabled && u.autoDisableReason) {
+          autoDisableNotice = `<div style="font-size:0.72rem; color:var(--warning, #f59e0b); display:flex; align-items:center; gap:4px; margin-top:3px;" title="${u.autoDisableReason}"><i data-lucide="alert-circle" style="width:11px; height:11px; flex-shrink:0;"></i> <span>${u.autoDisableReason}</span></div>`;
+        } else if (!isDisabled && u.autoDisableEnabled) {
+          if (u.autoDisableType === "daily") {
+            autoDisableNotice = `<div style="font-size:0.72rem; color:#38bdf8; display:flex; align-items:center; gap:4px; margin-top:3px;"><i data-lucide="clock" style="width:11px; height:11px; flex-shrink:0;"></i> <span>Auto-off: Daily at ${u.autoDisableDailyTime || '22:00'}</span></div>`;
+          } else if (u.autoDisableAt) {
+            const d = new Date(u.autoDisableAt);
+            const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            autoDisableNotice = `<div style="font-size:0.72rem; color:#38bdf8; display:flex; align-items:center; gap:4px; margin-top:3px;"><i data-lucide="timer" style="width:11px; height:11px; flex-shrink:0;"></i> <span>Auto-off: ${dateStr} ${timeStr}</span></div>`;
+          }
+        }
+      }
+
       html += `
-        <div class="user-account-card ${isMaster ? 'master-admin-card' : ''}">
+        <div class="user-account-card ${isMaster ? 'master-admin-card' : ''} ${isDisabled ? 'account-disabled' : ''}">
           <div class="user-card-header">
             <div class="user-card-avatar ${isMaster ? 'gold' : ''}">${initials}</div>
             <div class="user-card-info">
@@ -1399,14 +1423,30 @@ const AdminPanel = {
               <span class="role-badge ${u.role.toLowerCase()}">${u.role}</span>
             </div>
             <div class="user-meta-chip">
-              <span class="label">Access:</span>
+              <span class="label">Status:</span>
+              ${statusBadge}
+            </div>
+            <div class="user-meta-chip">
+              <span class="label">Device:</span>
               ${deviceStatusBadge}
             </div>
+            ${autoDisableNotice}
           </div>
           <div class="user-card-footer">
             <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editUser('${u.id}')">
               <i data-lucide="edit-3"></i> Edit
             </button>
+            ${!isOwnerOrAdmin && !isSelf ? `
+              ${isDisabled ? `
+                <button type="button" class="btn btn-success btn-sm" onclick="AdminPanel.quickToggleUserStatus('${u.id}', 'active')" title="Enable staff account access">
+                  <i data-lucide="user-check"></i> Enable
+                </button>
+              ` : `
+                <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.quickToggleUserStatus('${u.id}', 'disabled')" title="Disable staff account">
+                  <i data-lucide="user-x"></i> Disable
+                </button>
+              `}
+            ` : ''}
             ${!isOwnerOrAdmin && isOnlineNow && !isSelf ? `
               <button type="button" class="btn btn-warning btn-sm" onclick="AdminPanel.forceDisconnectUser('${u.id}', '${u.fullName.replace(/'/g, "\\'")}')" title="Disconnect device to free login">
                 <i data-lucide="log-out"></i> Free Device
@@ -1428,6 +1468,23 @@ const AdminPanel = {
     if (window.lucide) lucide.createIcons();
   },
 
+  async quickToggleUserStatus(userId, newStatus) {
+    const data = StorageManager.get();
+    const user = (data.users || []).find(u => u.id === userId);
+    if (!user) return;
+
+    try {
+      await StorageManager.updateUser(userId, { status: newStatus });
+      this.renderUsers();
+      Sound.playSuccess();
+      App.showToast(`Account for ${user.fullName} is now ${newStatus}.`, "success");
+    } catch (err) {
+      console.error("Quick toggle user status error:", err);
+      Sound.playError();
+      App.showToast(`Error: ${err.message || 'Failed to update user status.'}`, "danger");
+    }
+  },
+
   forceDisconnectUser(userId, userName) {
     App.showConfirmModal(
       `Free Device for ${userName}?`,
@@ -1447,6 +1504,43 @@ const AdminPanel = {
     );
   },
 
+  toggleAutoDisableFields(enable) {
+    const fields = document.getElementById("user-autodisable-fields");
+    if (fields) {
+      fields.style.display = enable ? "flex" : "none";
+    }
+  },
+
+  handleAutoDisableTypeChange(type) {
+    const dtGroup = document.getElementById("user-autodisable-datetime-group");
+    const dailyGroup = document.getElementById("user-autodisable-daily-group");
+    if (dtGroup) dtGroup.style.display = (type === "datetime") ? "block" : "none";
+    if (dailyGroup) dailyGroup.style.display = (type === "daily") ? "block" : "none";
+  },
+
+  presetAutoDisable(preset) {
+    const dtInput = document.getElementById("user-autodisable-datetime");
+    if (!dtInput) return;
+
+    const now = new Date();
+    if (typeof preset === "number") {
+      now.setHours(now.getHours() + preset);
+    } else if (preset === "today-10pm") {
+      now.setHours(22, 0, 0, 0);
+    } else if (preset === "tomorrow-10pm") {
+      now.setDate(now.getDate() + 1);
+      now.setHours(22, 0, 0, 0);
+    }
+
+    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    dtInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+  },
+
   openUserModal(isEdit = false, isMaster = false) {
     const modal = document.getElementById("modal-user-form");
     const title = document.getElementById("user-modal-title");
@@ -1454,6 +1548,9 @@ const AdminPanel = {
     const pwdInput = document.getElementById("user-password");
     const roleSelect = document.getElementById("user-role");
     const statusSelect = document.getElementById("user-status");
+    const autoDisableSection = document.getElementById("user-auto-disable-section");
+    const autoDisableEnable = document.getElementById("user-autodisable-enable");
+    const autoDisableNotice = document.getElementById("user-autodisable-info");
 
     if (title) {
       if (isMaster) title.textContent = "Edit Master Account (Owner)";
@@ -1462,7 +1559,7 @@ const AdminPanel = {
     if (pwdHelp) pwdHelp.style.display = isEdit ? "block" : "none";
     if (pwdInput) pwdInput.required = !isEdit;
 
-    // Lock role and status for Master Admin
+    // Lock role, status, and auto-disable for Master Admin
     if (roleSelect) {
       roleSelect.disabled = isMaster;
       if (isMaster) roleSelect.value = "ADMIN";
@@ -1471,15 +1568,24 @@ const AdminPanel = {
       statusSelect.disabled = isMaster;
       if (isMaster) statusSelect.value = "active";
     }
+    if (autoDisableSection) {
+      autoDisableSection.style.display = isMaster ? "none" : "block";
+    }
 
     if (!isEdit) {
       document.getElementById("user-form").reset();
       document.getElementById("user-id").value = "";
       if (roleSelect) roleSelect.disabled = false;
       if (statusSelect) statusSelect.disabled = false;
+      if (autoDisableEnable) {
+        autoDisableEnable.checked = false;
+        this.toggleAutoDisableFields(false);
+      }
+      if (autoDisableNotice) autoDisableNotice.style.display = "none";
     }
 
     if (modal) modal.classList.add("active");
+    if (window.lucide) lucide.createIcons();
   },
 
   closeUserModal() {
@@ -1500,6 +1606,53 @@ const AdminPanel = {
     document.getElementById("user-password").value = "";
     document.getElementById("user-role").value = u.role;
     document.getElementById("user-status").value = u.status;
+
+    // Auto-disable configuration
+    const enableCheckbox = document.getElementById("user-autodisable-enable");
+    const typeSelect = document.getElementById("user-autodisable-type");
+    const dtInput = document.getElementById("user-autodisable-datetime");
+    const dailyInput = document.getElementById("user-autodisable-daily");
+    const notice = document.getElementById("user-autodisable-info");
+
+    const isAutoDisableActive = !!u.autoDisableEnabled;
+    if (enableCheckbox) enableCheckbox.checked = isAutoDisableActive;
+    this.toggleAutoDisableFields(isAutoDisableActive);
+
+    const type = u.autoDisableType || "datetime";
+    if (typeSelect) typeSelect.value = type;
+    this.handleAutoDisableTypeChange(type);
+
+    if (dtInput) {
+      if (u.autoDisableAt) {
+        // Parse ISO or formatted date to datetime-local
+        try {
+          const d = new Date(u.autoDisableAt);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const hours = String(d.getHours()).padStart(2, "0");
+          const minutes = String(d.getMinutes()).padStart(2, "0");
+          dtInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        } catch (e) {
+          dtInput.value = u.autoDisableAt;
+        }
+      } else {
+        dtInput.value = "";
+      }
+    }
+
+    if (dailyInput) {
+      dailyInput.value = u.autoDisableDailyTime || "22:00";
+    }
+
+    if (notice) {
+      if (u.status === "disabled" && u.autoDisableReason) {
+        notice.textContent = `Current status: Disabled (${u.autoDisableReason})`;
+        notice.style.display = "block";
+      } else {
+        notice.style.display = "none";
+      }
+    }
   },
 
   async saveUser(e) {
@@ -1519,6 +1672,10 @@ const AdminPanel = {
       const pwd = document.getElementById("user-password").value;
 
       const isMaster = userId === "usr-admin" || (userId && (data.users.find(u => u.id === userId)?.isMaster));
+      const autoDisableEnabled = !isMaster && (document.getElementById("user-autodisable-enable")?.checked || false);
+      const autoDisableType = document.getElementById("user-autodisable-type")?.value || "datetime";
+      const autoDisableAt = document.getElementById("user-autodisable-datetime")?.value || null;
+      const autoDisableDailyTime = document.getElementById("user-autodisable-daily")?.value || "22:00";
 
       const payload = {
         id: userId || "usr-" + Date.now(),
@@ -1527,6 +1684,10 @@ const AdminPanel = {
         role: isMaster ? "ADMIN" : document.getElementById("user-role").value,
         status: isMaster ? "active" : document.getElementById("user-status").value,
         isMaster: !!isMaster,
+        autoDisableEnabled: autoDisableEnabled,
+        autoDisableType: autoDisableType,
+        autoDisableAt: autoDisableAt,
+        autoDisableDailyTime: autoDisableDailyTime,
         createdAt: new Date().toISOString()
       };
 

@@ -738,7 +738,8 @@
         // 1. Check if user account was deleted or disabled by admin
         const dbUser = (data.users || []).find(u => u.id === this.currentUser.id);
         if (dbUser && dbUser.status === "disabled") {
-          this.showTimeoutModal(null, "Your staff account has been deactivated by the Administrator.");
+          const reason = dbUser.autoDisableReason || "Your staff account has been deactivated by the Administrator.";
+          this.showTimeoutModal(null, reason);
           return;
         }
 

@@ -574,6 +574,16 @@ img {
 .mb-2 { margin-bottom: 0.5rem; }
 .cursor-pointer { cursor: pointer; }
 
+.btn-xs {
+  padding: 3px 8px !important;
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+  min-height: unset !important;
+  height: auto !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

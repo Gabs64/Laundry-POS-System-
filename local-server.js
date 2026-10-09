@@ -66,6 +66,66 @@ const CLEAN_SEED_DATA = {
 let cachedData = null;
 let lastUpdatedTimestamp = Date.now();
 
+function checkAutoDisableUsers(dbData) {
+  if (!dbData || !Array.isArray(dbData.users)) return false;
+  let modified = false;
+  const now = new Date();
+  const currentIso = now.toISOString();
+
+  dbData.users.forEach(u => {
+    // Admin & Master Admin cannot be auto-disabled
+    if (u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN') return;
+    if (u.status === 'disabled') return;
+
+    if (u.autoDisableEnabled) {
+      let shouldDisable = false;
+      let reason = '';
+
+      if (u.autoDisableType === 'datetime' || (!u.autoDisableType && u.autoDisableAt)) {
+        if (u.autoDisableAt) {
+          const disableTime = new Date(u.autoDisableAt).getTime();
+          if (!isNaN(disableTime) && Date.now() >= disableTime) {
+            shouldDisable = true;
+            reason = `Scheduled auto-disable time reached (${new Date(u.autoDisableAt).toLocaleString()})`;
+          }
+        }
+      } else if (u.autoDisableType === 'daily') {
+        if (u.autoDisableDailyTime) {
+          const parts = u.autoDisableDailyTime.split(':').map(Number);
+          const dHour = parts[0];
+          const dMin = parts[1] || 0;
+          const targetToday = new Date(now);
+          targetToday.setHours(dHour, dMin, 0, 0);
+
+          if (now.getTime() >= targetToday.getTime()) {
+            const todayDateStr = now.toISOString().split('T')[0];
+            const lastAutoDisabled = u.lastAutoDisabledDate;
+            const lastEnabledAt = u.lastEnabledAt ? new Date(u.lastEnabledAt).getTime() : 0;
+
+            if (lastEnabledAt < targetToday.getTime() && lastAutoDisabled !== todayDateStr) {
+              shouldDisable = true;
+              u.lastAutoDisabledDate = todayDateStr;
+              reason = `Daily auto-disable cut-off reached (${u.autoDisableDailyTime})`;
+            }
+          }
+        }
+      }
+
+      if (shouldDisable) {
+        u.status = 'disabled';
+        u.activeSessionId = null;
+        u.lastHeartbeat = null;
+        u.isOnline = false;
+        u.autoDisabledAt = currentIso;
+        u.autoDisableReason = reason;
+        modified = true;
+      }
+    }
+  });
+
+  return modified;
+}
+
 function loadServerData() {
   try {
     if (fs.existsSync(DB_FILE)) {
@@ -84,6 +144,12 @@ function loadServerData() {
         cachedData = parsed;
         const stat = fs.statSync(DB_FILE);
         lastUpdatedTimestamp = stat.mtimeMs || Date.now();
+
+        // Check if any staff accounts reached auto-disable time
+        if (checkAutoDisableUsers(cachedData)) {
+          saveServerData(cachedData);
+        }
+
         return cachedData;
       }
     }
@@ -113,7 +179,7 @@ function saveServerData(data) {
       }
     }
 
-    // Session state (activeSessionId, lastHeartbeat, isOnline) is strictly authoritative on the server
+    // Session state & auto-disable metadata
     if (cachedData && Array.isArray(cachedData.users) && Array.isArray(data.users)) {
       data.users.forEach(u => {
         const prev = cachedData.users.find(p => p.id === u.id);
@@ -122,6 +188,15 @@ function saveServerData(data) {
           u.lastHeartbeat = prev.lastHeartbeat !== undefined ? prev.lastHeartbeat : null;
           u.isOnline = prev.isOnline !== undefined ? prev.isOnline : false;
           u.lastLoginAt = prev.lastLoginAt || u.lastLoginAt || null;
+
+          if (u.autoDisableEnabled === undefined) u.autoDisableEnabled = !!prev.autoDisableEnabled;
+          if (u.autoDisableType === undefined) u.autoDisableType = prev.autoDisableType || 'datetime';
+          if (u.autoDisableAt === undefined) u.autoDisableAt = prev.autoDisableAt || null;
+          if (u.autoDisableDailyTime === undefined) u.autoDisableDailyTime = prev.autoDisableDailyTime || '22:00';
+          if (u.autoDisabledAt === undefined) u.autoDisabledAt = prev.autoDisabledAt || null;
+          if (u.autoDisableReason === undefined) u.autoDisableReason = prev.autoDisableReason || null;
+          if (u.lastAutoDisabledDate === undefined) u.lastAutoDisabledDate = prev.lastAutoDisabledDate || null;
+          if (u.lastEnabledAt === undefined) u.lastEnabledAt = prev.lastEnabledAt || null;
         }
       });
     }
@@ -140,6 +215,18 @@ function saveServerData(data) {
 
 // Initial DB load on startup
 loadServerData();
+
+// Background timer to check scheduled staff auto-disable every 10 seconds
+setInterval(() => {
+  try {
+    const data = loadServerData();
+    if (checkAutoDisableUsers(data)) {
+      saveServerData(data);
+    }
+  } catch (err) {
+    console.error('Auto-disable scheduler error:', err);
+  }
+}, 10000);
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=UTF-8',
@@ -270,6 +357,12 @@ const server = http.createServer(async (req, res) => {
           role: newUser.role || "CASHIER",
           status: newUser.status || "active",
           isMaster: false,
+          autoDisableEnabled: !!newUser.autoDisableEnabled,
+          autoDisableType: newUser.autoDisableType || "datetime",
+          autoDisableAt: newUser.autoDisableAt || null,
+          autoDisableDailyTime: newUser.autoDisableDailyTime || "22:00",
+          autoDisabledAt: newUser.autoDisabledAt || null,
+          autoDisableReason: newUser.autoDisableReason || null,
           createdAt: new Date().toISOString()
         };
 
@@ -322,7 +415,26 @@ const server = http.createServer(async (req, res) => {
         }
         if (!isMaster) {
           existing.role = updates.role || existing.role;
-          existing.status = updates.status || existing.status;
+          if (updates.status) {
+            if (existing.status === 'disabled' && updates.status === 'active') {
+              existing.lastEnabledAt = new Date().toISOString();
+              existing.autoDisabledAt = null;
+              existing.autoDisableReason = null;
+            }
+            existing.status = updates.status;
+          }
+          if (updates.autoDisableEnabled !== undefined) {
+            existing.autoDisableEnabled = !!updates.autoDisableEnabled;
+          }
+          if (updates.autoDisableType !== undefined) {
+            existing.autoDisableType = updates.autoDisableType;
+          }
+          if (updates.autoDisableAt !== undefined) {
+            existing.autoDisableAt = updates.autoDisableAt;
+          }
+          if (updates.autoDisableDailyTime !== undefined) {
+            existing.autoDisableDailyTime = updates.autoDisableDailyTime;
+          }
         }
 
         dbData.users[idx] = existing;
@@ -387,7 +499,10 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (user.status === 'disabled') {
-          return sendJson(res, 403, { success: false, error: 'Account is disabled. Contact your administrator.' });
+          const reason = user.autoDisableReason
+            ? `Account is disabled (${user.autoDisableReason}). Contact your administrator.`
+            : 'Account is disabled. Contact your administrator.';
+          return sendJson(res, 403, { success: false, error: reason });
         }
 
         // STRICT SINGLE DEVICE ENFORCEMENT ONLY FOR STAFF ACCOUNTS (EXCLUDES OWNER / ADMIN)
@@ -444,7 +559,8 @@ const server = http.createServer(async (req, res) => {
         const user = users.find(u => u.id === userId);
 
         if (!user || user.status === 'disabled') {
-          return sendJson(res, 401, { success: false, active: false, reason: 'Account disabled or not found.' });
+          const reason = (user && user.autoDisableReason) ? user.autoDisableReason : 'Account disabled or not found.';
+          return sendJson(res, 401, { success: false, active: false, reason: reason });
         }
 
         const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
