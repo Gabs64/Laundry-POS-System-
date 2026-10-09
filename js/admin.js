@@ -1465,37 +1465,59 @@ const AdminPanel = {
 
   async saveUser(e) {
     e.preventDefault();
-    const data = StorageManager.get();
-    const userId = document.getElementById("user-id").value;
-    const pwd = document.getElementById("user-password").value;
-
-    const isMaster = userId === "usr-admin" || (userId && (data.users.find(u => u.id === userId)?.isMaster));
-
-    const payload = {
-      id: userId || "usr-" + Date.now(),
-      fullName: document.getElementById("user-fullname").value.trim(),
-      username: document.getElementById("user-username").value.trim().toLowerCase(),
-      role: isMaster ? "ADMIN" : document.getElementById("user-role").value,
-      status: isMaster ? "active" : document.getElementById("user-status").value,
-      isMaster: !!isMaster,
-      createdAt: new Date().toISOString()
-    };
-
-    if (userId) {
-      const existing = data.users.find(u => u.id === userId);
-      if (existing) {
-        payload.password = pwd ? pwd : existing.password;
-        payload.createdAt = existing.createdAt;
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn ? btn.innerHTML : "Save Staff Member";
+    
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Saving to Database...`;
+        if (window.lucide) lucide.createIcons();
       }
-      await StorageManager.updateUser(userId, payload);
-    } else {
-      payload.password = pwd || "123456";
-      await StorageManager.addUser(payload);
-    }
 
-    this.closeUserModal();
-    this.renderUsers();
-    App.showToast(`Saved staff account: ${payload.fullName}`, "success");
+      const data = StorageManager.get();
+      const userId = document.getElementById("user-id").value;
+      const pwd = document.getElementById("user-password").value;
+
+      const isMaster = userId === "usr-admin" || (userId && (data.users.find(u => u.id === userId)?.isMaster));
+
+      const payload = {
+        id: userId || "usr-" + Date.now(),
+        fullName: document.getElementById("user-fullname").value.trim(),
+        username: document.getElementById("user-username").value.trim().toLowerCase(),
+        role: isMaster ? "ADMIN" : document.getElementById("user-role").value,
+        status: isMaster ? "active" : document.getElementById("user-status").value,
+        isMaster: !!isMaster,
+        createdAt: new Date().toISOString()
+      };
+
+      if (userId) {
+        const existing = data.users.find(u => u.id === userId);
+        if (existing) {
+          payload.password = pwd ? pwd : existing.password;
+          payload.createdAt = existing.createdAt;
+        }
+        await StorageManager.updateUser(userId, payload);
+      } else {
+        payload.password = pwd || "123456";
+        await StorageManager.addUser(payload);
+      }
+
+      this.closeUserModal();
+      this.renderUsers();
+      Sound.playSuccess();
+      App.showToast(`Saved staff account: ${payload.fullName}`, "success");
+    } catch (err) {
+      console.error("Save user error:", err);
+      Sound.playError();
+      App.showToast(`Database Error: ${err.message || 'Failed to save account to database.'}`, "danger");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
   },
 
   confirmDeleteUser(id) {
@@ -1511,11 +1533,18 @@ const AdminPanel = {
 
     App.showConfirmModal(
       `Delete User "${u.fullName}"?`,
-      "This staff member will no longer be able to log in.",
+      "This staff member will be permanently removed from the Railway database.",
       async () => {
-        await StorageManager.deleteUser(id);
-        this.renderUsers();
-        App.showToast(`Deleted staff account ${u.fullName}`, "info");
+        try {
+          await StorageManager.deleteUser(id);
+          this.renderUsers();
+          Sound.playSuccess();
+          App.showToast(`Deleted staff account: ${u.fullName}`, "info");
+        } catch (err) {
+          console.error("Delete user error:", err);
+          Sound.playError();
+          App.showToast(`Database Error: ${err.message || 'Failed to delete from database.'}`, "danger");
+        }
       }
     );
   },

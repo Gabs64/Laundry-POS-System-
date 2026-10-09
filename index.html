@@ -111,7 +111,7 @@
         }
 
         try {
-          // 1. Authenticate against Server Database API
+          // Authenticate strictly against Railway Server Database API
           const res = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -124,35 +124,13 @@
               this.onLoginSuccess(result.user);
               return;
             }
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || "Invalid username or password.");
           }
+          
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || "Invalid username or password.");
         } catch (err) {
-          // If server is unreachable or offline, attempt verification against local database cache
-          const localData = StorageManager.get();
-          const localUsers = localData.users || [];
-          const matched = localUsers.find(u => u.username.toLowerCase() === user.toLowerCase() && u.password === pass);
-
-          if (matched) {
-            if (matched.status === "disabled") {
-              Sound.playError();
-              this.showToast("This user account is currently disabled.", "danger");
-            } else {
-              this.onLoginSuccess({
-                id: matched.id,
-                fullName: matched.fullName,
-                username: matched.username,
-                role: matched.role,
-                isMaster: !!matched.isMaster,
-                status: matched.status
-              });
-              return;
-            }
-          } else {
-            Sound.playError();
-            this.showToast(err.message || "Invalid username or password.", "danger");
-          }
+          Sound.playError();
+          this.showToast(err.message || "Authentication failed. Could not connect to database.", "danger");
         } finally {
           if (btn) {
             btn.disabled = false;

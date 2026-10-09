@@ -160,292 +160,294 @@ function readBody(req) {
   });
 }
 
+function sendJson(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=UTF-8',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+  });
+  res.end(JSON.stringify(data));
+}
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname;
+  let pathname = parsedUrl.pathname.replace(/\/+$/, '') || '/';
+  const method = req.method.toUpperCase();
 
   // Set CORS headers for seamless multi-device access
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Client-Version');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Client-Version, Authorization');
 
-  if (req.method === 'OPTIONS') {
+  if (method === 'OPTIONS') {
     res.writeHead(204);
     return res.end();
   }
 
   /* =========================================================
-     REST API ENDPOINTS
+     REST API ENDPOINTS (Never fall through to static files)
      ========================================================= */
-
-  // 1. GET /api/data
-  if (pathname === '/api/data' && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-    return res.end(JSON.stringify({
-      success: true,
-      data: cachedData || loadServerData(),
-      lastUpdated: lastUpdatedTimestamp
-    }));
-  }
-
-  // 2. POST /api/data (Full state synchronization)
-  if (pathname === '/api/data' && req.method === 'POST') {
-    try {
-      const raw = await readBody(req);
-      const parsed = JSON.parse(raw);
-      const dataToSave = parsed.data || parsed;
-
-      if (!dataToSave || typeof dataToSave !== 'object') {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Invalid data format' }));
-      }
-
-      const ok = saveServerData(dataToSave);
-      if (ok) {
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({
-          success: true,
-          lastUpdated: lastUpdatedTimestamp
-        }));
-      } else {
-        res.writeHead(500, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Failed to write to disk' }));
-      }
-    } catch (err) {
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, error: err.message }));
-    }
-  }
-
-  // 3. GET /api/users
-  if (pathname === '/api/users' && req.method === 'GET') {
-    const dbData = cachedData || loadServerData();
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-    return res.end(JSON.stringify({
-      success: true,
-      users: dbData.users || []
-    }));
-  }
-
-  // 4. POST /api/users (Add user directly to database)
-  if (pathname === '/api/users' && req.method === 'POST') {
-    try {
-      const raw = await readBody(req);
-      const newUser = JSON.parse(raw);
-      if (!newUser.username || !newUser.fullName) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Username and Full Name are required' }));
-      }
-
-      const dbData = cachedData || loadServerData();
-      if (!Array.isArray(dbData.users)) dbData.users = [];
-
-      // Check username conflict
-      const exists = dbData.users.some(u => u.username.toLowerCase() === newUser.username.trim().toLowerCase());
-      if (exists) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Username already exists' }));
-      }
-
-      const userRecord = {
-        id: newUser.id || "usr-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
-        fullName: newUser.fullName.trim(),
-        username: newUser.username.trim().toLowerCase(),
-        password: newUser.password || "123456",
-        role: newUser.role || "CASHIER",
-        status: newUser.status || "active",
-        isMaster: false,
-        createdAt: new Date().toISOString()
-      };
-
-      dbData.users.push(userRecord);
-      saveServerData(dbData);
-
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({
+  if (pathname.startsWith('/api')) {
+    // 1. GET /api/data
+    if (pathname === '/api/data' && method === 'GET') {
+      const data = loadServerData();
+      return sendJson(res, 200, {
         success: true,
-        user: userRecord,
-        users: dbData.users,
+        data: data,
         lastUpdated: lastUpdatedTimestamp
-      }));
-    } catch (err) {
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, error: err.message }));
-    }
-  }
-
-  // 5. PUT /api/users (Update user in database)
-  if (pathname.startsWith('/api/users/') && req.method === 'PUT') {
-    try {
-      const targetId = decodeURIComponent(pathname.split('/api/users/')[1]);
-      const raw = await readBody(req);
-      const updates = JSON.parse(raw);
-
-      const dbData = cachedData || loadServerData();
-      const idx = (dbData.users || []).findIndex(u => u.id === targetId);
-
-      if (idx === -1) {
-        res.writeHead(404, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'User not found' }));
-      }
-
-      const existing = dbData.users[idx];
-      const isMaster = existing.isMaster || existing.id === 'usr-admin';
-
-      existing.fullName = updates.fullName ? updates.fullName.trim() : existing.fullName;
-      existing.username = updates.username ? updates.username.trim().toLowerCase() : existing.username;
-      if (updates.password) {
-        existing.password = updates.password;
-      }
-      if (!isMaster) {
-        existing.role = updates.role || existing.role;
-        existing.status = updates.status || existing.status;
-      }
-
-      dbData.users[idx] = existing;
-      saveServerData(dbData);
-
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({
-        success: true,
-        user: existing,
-        users: dbData.users,
-        lastUpdated: lastUpdatedTimestamp
-      }));
-    } catch (err) {
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, error: err.message }));
-    }
-  }
-
-  // 6. DELETE /api/users/:id (Delete user from database)
-  if (pathname.startsWith('/api/users/') && req.method === 'DELETE') {
-    const targetId = decodeURIComponent(pathname.split('/api/users/')[1]);
-    const dbData = cachedData || loadServerData();
-    const existing = (dbData.users || []).find(u => u.id === targetId);
-
-    if (!existing) {
-      res.writeHead(404, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, error: 'User not found' }));
+      });
     }
 
-    if (existing.isMaster || existing.id === 'usr-admin' || existing.role === 'ADMIN') {
-      res.writeHead(403, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, error: 'Mother Admin account cannot be deleted' }));
-    }
+    // 2. POST /api/data
+    if (pathname === '/api/data' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const parsed = JSON.parse(raw);
+        const dataToSave = parsed.data || parsed;
 
-    dbData.users = dbData.users.filter(u => u.id !== targetId);
-    saveServerData(dbData);
-
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-    return res.end(JSON.stringify({
-      success: true,
-      users: dbData.users,
-      lastUpdated: lastUpdatedTimestamp
-    }));
-  }
-
-  // 7. POST /api/auth/login (Authenticates against database file)
-  if (pathname === '/api/auth/login' && req.method === 'POST') {
-    try {
-      const raw = await readBody(req);
-      const { username, password } = JSON.parse(raw);
-      if (!username || !password) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Username and password are required' }));
-      }
-
-      // Always read fresh from DB file
-      const dbData = loadServerData();
-      const users = dbData.users || [];
-      const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
-
-      if (!user || user.password !== password) {
-        res.writeHead(401, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Invalid username or password' }));
-      }
-
-      if (user.status === 'disabled') {
-        res.writeHead(403, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, error: 'Account is disabled. Contact your administrator.' }));
-      }
-
-      // Return clean authenticated user session
-      const userSession = {
-        id: user.id,
-        fullName: user.fullName,
-        username: user.username,
-        role: user.role,
-        isMaster: !!user.isMaster,
-        status: user.status
-      };
-
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({
-        success: true,
-        user: userSession
-      }));
-    } catch (err) {
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, error: err.message }));
-    }
-  }
-
-  // 8. POST /api/auth/verify
-  if (pathname === '/api/auth/verify' && req.method === 'POST') {
-    try {
-      const raw = await readBody(req);
-      const { userId } = JSON.parse(raw);
-      const dbData = loadServerData();
-      const users = dbData.users || [];
-      const user = users.find(u => u.id === userId);
-
-      if (!user || user.status === 'disabled') {
-        res.writeHead(401, { 'Content-Type': 'application/json; charset=UTF-8' });
-        return res.end(JSON.stringify({ success: false, valid: false }));
-      }
-
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({
-        success: true,
-        valid: true,
-        user: {
-          id: user.id,
-          fullName: user.fullName,
-          username: user.username,
-          role: user.role,
-          isMaster: !!user.isMaster,
-          status: user.status
+        if (!dataToSave || typeof dataToSave !== 'object') {
+          return sendJson(res, 400, { success: false, error: 'Invalid data format' });
         }
-      }));
-    } catch (err) {
-      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
-      return res.end(JSON.stringify({ success: false, valid: false }));
+
+        const ok = saveServerData(dataToSave);
+        if (ok) {
+          return sendJson(res, 200, {
+            success: true,
+            lastUpdated: lastUpdatedTimestamp
+          });
+        } else {
+          return sendJson(res, 500, { success: false, error: 'Database write failed on server volume' });
+        }
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: err.message });
+      }
     }
-  }
 
-  // 9. POST /api/reset
-  if (pathname === '/api/reset' && req.method === 'POST') {
-    const cleanCopy = JSON.parse(JSON.stringify(CLEAN_SEED_DATA));
-    saveServerData(cleanCopy);
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-    return res.end(JSON.stringify({
-      success: true,
-      data: cleanCopy,
-      lastUpdated: lastUpdatedTimestamp
-    }));
-  }
+    // 3. GET /api/users
+    if (pathname === '/api/users' && method === 'GET') {
+      const dbData = loadServerData();
+      return sendJson(res, 200, {
+        success: true,
+        users: dbData.users || []
+      });
+    }
 
-  // 10. GET /api/health
-  if (pathname === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
-    return res.end(JSON.stringify({
-      status: 'ok',
-      dbFile: DB_FILE,
-      dataDir: DATA_DIR,
-      usersCount: (cachedData?.users || []).length,
-      lastUpdated: lastUpdatedTimestamp
-    }));
+    // 4. POST /api/users (Add user directly to database)
+    if (pathname === '/api/users' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const newUser = JSON.parse(raw);
+        if (!newUser.username || !newUser.fullName) {
+          return sendJson(res, 400, { success: false, error: 'Username and Full Name are required' });
+        }
+
+        const dbData = loadServerData();
+        if (!Array.isArray(dbData.users)) dbData.users = [];
+
+        // Check username conflict
+        const exists = dbData.users.some(u => u.username.toLowerCase() === newUser.username.trim().toLowerCase());
+        if (exists) {
+          return sendJson(res, 400, { success: false, error: `Username "${newUser.username.trim()}" is already taken.` });
+        }
+
+        const userRecord = {
+          id: newUser.id || "usr-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+          fullName: newUser.fullName.trim(),
+          username: newUser.username.trim().toLowerCase(),
+          password: newUser.password || "123456",
+          role: newUser.role || "CASHIER",
+          status: newUser.status || "active",
+          isMaster: false,
+          createdAt: new Date().toISOString()
+        };
+
+        dbData.users.push(userRecord);
+        const ok = saveServerData(dbData);
+        if (!ok) {
+          return sendJson(res, 500, { success: false, error: 'Failed to write new user to database.' });
+        }
+
+        return sendJson(res, 200, {
+          success: true,
+          user: userRecord,
+          users: dbData.users,
+          lastUpdated: lastUpdatedTimestamp
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: err.message });
+      }
+    }
+
+    // 5. PUT /api/users/:id
+    if (pathname.startsWith('/api/users/') && method === 'PUT') {
+      try {
+        const targetId = decodeURIComponent(pathname.replace('/api/users/', ''));
+        const raw = await readBody(req);
+        const updates = JSON.parse(raw);
+
+        const dbData = loadServerData();
+        const idx = (dbData.users || []).findIndex(u => u.id === targetId);
+
+        if (idx === -1) {
+          return sendJson(res, 404, { success: false, error: 'User account not found in database.' });
+        }
+
+        const existing = dbData.users[idx];
+        const isMaster = existing.isMaster || existing.id === 'usr-admin';
+
+        // Check username conflict if username is being changed
+        if (updates.username && updates.username.trim().toLowerCase() !== existing.username.toLowerCase()) {
+          const usernameConflict = dbData.users.some(u => u.id !== targetId && u.username.toLowerCase() === updates.username.trim().toLowerCase());
+          if (usernameConflict) {
+            return sendJson(res, 400, { success: false, error: `Username "${updates.username.trim()}" is already taken by another account.` });
+          }
+          existing.username = updates.username.trim().toLowerCase();
+        }
+
+        existing.fullName = updates.fullName ? updates.fullName.trim() : existing.fullName;
+        if (updates.password) {
+          existing.password = updates.password;
+        }
+        if (!isMaster) {
+          existing.role = updates.role || existing.role;
+          existing.status = updates.status || existing.status;
+        }
+
+        dbData.users[idx] = existing;
+        const ok = saveServerData(dbData);
+        if (!ok) {
+          return sendJson(res, 500, { success: false, error: 'Failed to save user updates to database.' });
+        }
+
+        return sendJson(res, 200, {
+          success: true,
+          user: existing,
+          users: dbData.users,
+          lastUpdated: lastUpdatedTimestamp
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: err.message });
+      }
+    }
+
+    // 6. DELETE /api/users/:id
+    if (pathname.startsWith('/api/users/') && method === 'DELETE') {
+      const targetId = decodeURIComponent(pathname.replace('/api/users/', ''));
+      const dbData = loadServerData();
+      const existing = (dbData.users || []).find(u => u.id === targetId);
+
+      if (!existing) {
+        return sendJson(res, 404, { success: false, error: 'User account not found in database.' });
+      }
+
+      if (existing.isMaster || existing.id === 'usr-admin' || existing.role === 'ADMIN') {
+        return sendJson(res, 403, { success: false, error: 'The Master Admin account is permanent and cannot be deleted.' });
+      }
+
+      dbData.users = dbData.users.filter(u => u.id !== targetId);
+      const ok = saveServerData(dbData);
+      if (!ok) {
+        return sendJson(res, 500, { success: false, error: 'Failed to delete user from database.' });
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        users: dbData.users,
+        lastUpdated: lastUpdatedTimestamp
+      });
+    }
+
+    // 7. POST /api/auth/login
+    if (pathname === '/api/auth/login' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const { username, password } = JSON.parse(raw);
+        if (!username || !password) {
+          return sendJson(res, 400, { success: false, error: 'Username and password are required' });
+        }
+
+        const dbData = loadServerData();
+        const users = dbData.users || [];
+        const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+
+        if (!user || user.password !== password) {
+          return sendJson(res, 401, { success: false, error: 'Invalid username or password' });
+        }
+
+        if (user.status === 'disabled') {
+          return sendJson(res, 403, { success: false, error: 'Account is disabled. Contact your administrator.' });
+        }
+
+        return sendJson(res, 200, {
+          success: true,
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            username: user.username,
+            role: user.role,
+            isMaster: !!user.isMaster,
+            status: user.status
+          }
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: err.message });
+      }
+    }
+
+    // 8. POST /api/auth/verify
+    if (pathname === '/api/auth/verify' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const { userId } = JSON.parse(raw);
+        const dbData = loadServerData();
+        const users = dbData.users || [];
+        const user = users.find(u => u.id === userId);
+
+        if (!user || user.status === 'disabled') {
+          return sendJson(res, 401, { success: false, valid: false });
+        }
+
+        return sendJson(res, 200, {
+          success: true,
+          valid: true,
+          user: {
+            id: user.id,
+            fullName: user.fullName,
+            username: user.username,
+            role: user.role,
+            isMaster: !!user.isMaster,
+            status: user.status
+          }
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, valid: false });
+      }
+    }
+
+    // 9. POST /api/reset
+    if (pathname === '/api/reset' && method === 'POST') {
+      const cleanCopy = JSON.parse(JSON.stringify(CLEAN_SEED_DATA));
+      saveServerData(cleanCopy);
+      return sendJson(res, 200, {
+        success: true,
+        data: cleanCopy,
+        lastUpdated: lastUpdatedTimestamp
+      });
+    }
+
+    // 10. GET /api/health
+    if (pathname === '/api/health') {
+      const dbData = loadServerData();
+      return sendJson(res, 200, {
+        status: 'ok',
+        dbFile: DB_FILE,
+        dataDir: DATA_DIR,
+        usersCount: (dbData.users || []).length,
+        lastUpdated: lastUpdatedTimestamp
+      });
+    }
+
+    // Any other unmatched /api route
+    return sendJson(res, 404, { success: false, error: `API endpoint not found: ${method} ${pathname}` });
   }
 
   /* =========================================================

@@ -97,21 +97,18 @@ const StorageManager = {
   },
 
   async pushToServer(data) {
-    try {
-      const res = await fetch("/api/data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data })
-      });
-      if (res.ok) {
-        const result = await res.json();
-        if (result.lastUpdated) {
-          localStorage.setItem(LAST_SYNC_KEY, result.lastUpdated.toString());
-        }
-      }
-    } catch (err) {
-      // Offline or network error - data is still safe in localStorage
-      console.warn("Server sync push pending/offline:", err.message);
+    const res = await fetch("/api/data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to write data to server database.");
+    }
+    const result = await res.json().catch(() => ({}));
+    if (result.lastUpdated) {
+      localStorage.setItem(LAST_SYNC_KEY, result.lastUpdated.toString());
     }
   },
 
@@ -121,26 +118,26 @@ const StorageManager = {
 
     try {
       const res = await fetch("/api/data");
-      if (!res.ok) throw new Error("Server responded with " + res.status);
+      if (!res.ok) throw new Error("Server database error " + res.status);
 
       const result = await res.json();
       if (result.success && result.data) {
         const localData = localStorage.getItem(STORAGE_KEY);
         const serverJson = JSON.stringify(result.data);
 
-        // Check if server data is different or force refresh requested
+        // Update local cache directly from server source of truth
         if (forceRefresh || localData !== serverJson) {
           localStorage.setItem(STORAGE_KEY, serverJson);
           if (result.lastUpdated) {
             localStorage.setItem(LAST_SYNC_KEY, result.lastUpdated.toString());
           }
 
-          // Notify all active page components that new data arrived
+          // Notify all active page components that new database data arrived
           window.dispatchEvent(new CustomEvent("pos-data-synced", { detail: result.data }));
         }
       }
     } catch (err) {
-      // Backend not running or offline; keep using local data
+      console.warn("Server sync check:", err.message);
     } finally {
       this._isSyncing = false;
     }
@@ -161,88 +158,61 @@ const StorageManager = {
   },
 
   async resetToDefault() {
-    try {
-      const res = await fetch("/api/reset", { method: "POST" });
-      if (res.ok) {
-        const result = await res.json();
-        if (result.data) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
-          return result.data;
-        }
-      }
-    } catch (e) {}
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_DATA));
-    this.pushToServer(SEED_DATA);
+    const res = await fetch("/api/reset", { method: "POST" });
+    if (!res.ok) {
+      throw new Error("Failed to reset database on server.");
+    }
+    const result = await res.json();
+    if (result.data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
+      return result.data;
+    }
     return JSON.parse(JSON.stringify(SEED_DATA));
   },
 
   async addUser(userData) {
-    try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData)
-      });
-      if (res.ok) {
-        const result = await res.json();
-        if (result.users) {
-          const currentData = this.get();
-          currentData.users = result.users;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
-          return result.user;
-        }
-      }
-    } catch(e) {}
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData)
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || "Failed to save user to server database.");
+    }
     const currentData = this.get();
-    currentData.users.push(userData);
-    this.save(currentData);
-    return userData;
+    currentData.users = result.users || [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+    return result.user;
   },
 
   async updateUser(userId, updates) {
-    try {
-      const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates)
-      });
-      if (res.ok) {
-        const result = await res.json();
-        if (result.users) {
-          const currentData = this.get();
-          currentData.users = result.users;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
-          return result.user;
-        }
-      }
-    } catch(e) {}
-    const currentData = this.get();
-    const idx = currentData.users.findIndex(u => u.id === userId);
-    if (idx > -1) {
-      currentData.users[idx] = { ...currentData.users[idx], ...updates };
-      this.save(currentData);
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates)
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || "Failed to update user in server database.");
     }
+    const currentData = this.get();
+    currentData.users = result.users || [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+    return result.user;
   },
 
   async deleteUser(userId) {
-    try {
-      const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        const result = await res.json();
-        if (result.users) {
-          const currentData = this.get();
-          currentData.users = result.users;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
-          return true;
-        }
-      }
-    } catch(e) {}
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+      method: "DELETE"
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || "Failed to delete user from server database.");
+    }
     const currentData = this.get();
-    currentData.users = currentData.users.filter(u => u.id !== userId);
-    this.save(currentData);
+    currentData.users = result.users || [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
     return true;
   },
 

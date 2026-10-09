@@ -87,37 +87,12 @@ const App = {
           this.routeUserToRole();
           return;
         }
-      } else {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Invalid username or password.");
       }
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Invalid username or password.");
     } catch (e) {
-      // Offline fallback
-      const data = StorageManager.get();
-      const users = data.users || [];
-      const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-
-      if (!user) {
-        Sound.playError();
-        this.showToast(e.message || "Invalid username or password.", "danger");
-        return;
-      }
-
-      if (user.status === "disabled") {
-        Sound.playError();
-        this.showToast("This user account is currently disabled. Contact Admin.", "danger");
-        return;
-      }
-
-      this.currentUser = user;
-      sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
-      localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
-      if (typeof AttendanceManager !== "undefined") {
-        AttendanceManager.recordTimeIn(user);
-      }
-      Sound.playSuccess();
-      this.showToast(`Welcome back, ${user.fullName}!`, "success");
-      this.routeUserToRole();
+      Sound.playError();
+      this.showToast(e.message || "Invalid username or password.", "danger");
     }
   },
 
