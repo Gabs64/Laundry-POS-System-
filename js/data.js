@@ -250,6 +250,19 @@ const StorageManager = {
   async logoutSession(userId, sessionId) {
     if (!userId) return { success: true };
     try {
+      const currentData = this.get();
+      if (Array.isArray(currentData.users)) {
+        const u = currentData.users.find(x => x.id === userId || x.username === userId);
+        if (u) {
+          u.activeSessionId = null;
+          u.lastHeartbeat = null;
+          u.isOnline = false;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+        }
+      }
+    } catch (e) {}
+
+    try {
       const res = await fetch(getApiUrl("/api/auth/logout"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -798,6 +798,11 @@
       },
 
       async proceedToLoginAfterTimeout() {
+        this._isLoggingOut = true;
+        if (this._heartbeatTimer) {
+          clearInterval(this._heartbeatTimer);
+          this._heartbeatTimer = null;
+        }
         if (this.currentUser && this.currentSessionId) {
           await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
         }
@@ -812,6 +817,10 @@
       async forceLogout(reason = "You have been logged out.") {
         if (this._isLoggingOut) return;
         this._isLoggingOut = true;
+        if (this._heartbeatTimer) {
+          clearInterval(this._heartbeatTimer);
+          this._heartbeatTimer = null;
+        }
 
         if (this.currentUser && this.currentSessionId) {
           await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
@@ -923,11 +932,15 @@
           "Are you sure you want to end your cashier session? Your attendance time-out will be recorded.",
           async () => {
             this._isLoggingOut = true;
-            if (this.currentUser && this.currentSessionId) {
-              await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
+            if (this._heartbeatTimer) {
+              clearInterval(this._heartbeatTimer);
+              this._heartbeatTimer = null;
             }
             if (this.currentUser && typeof AttendanceManager !== "undefined") {
               AttendanceManager.recordTimeOut(this.currentUser);
+            }
+            if (this.currentUser && this.currentSessionId) {
+              await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
             }
             localStorage.removeItem("POS_ACTIVE_USER");
             sessionStorage.removeItem("POS_ACTIVE_USER");

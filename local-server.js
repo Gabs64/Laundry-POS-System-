@@ -113,15 +113,15 @@ function saveServerData(data) {
       }
     }
 
-    // Preserve active session tokens & online status from previous cachedData so POST /api/data never wipes them
+    // Session state (activeSessionId, lastHeartbeat, isOnline) is strictly authoritative on the server
     if (cachedData && Array.isArray(cachedData.users) && Array.isArray(data.users)) {
       data.users.forEach(u => {
         const prev = cachedData.users.find(p => p.id === u.id);
         if (prev) {
-          if (prev.activeSessionId && !u.activeSessionId) u.activeSessionId = prev.activeSessionId;
-          if (prev.lastHeartbeat && (!u.lastHeartbeat || prev.lastHeartbeat > u.lastHeartbeat)) u.lastHeartbeat = prev.lastHeartbeat;
-          if (prev.isOnline !== undefined && u.isOnline === undefined) u.isOnline = prev.isOnline;
-          if (prev.lastLoginAt && !u.lastLoginAt) u.lastLoginAt = prev.lastLoginAt;
+          u.activeSessionId = prev.activeSessionId !== undefined ? prev.activeSessionId : null;
+          u.lastHeartbeat = prev.lastHeartbeat !== undefined ? prev.lastHeartbeat : null;
+          u.isOnline = prev.isOnline !== undefined ? prev.isOnline : false;
+          u.lastLoginAt = prev.lastLoginAt || u.lastLoginAt || null;
         }
       });
     }
@@ -482,16 +482,13 @@ const server = http.createServer(async (req, res) => {
         const { userId, sessionId } = JSON.parse(raw || '{}');
         const dbData = loadServerData();
         const users = dbData.users || [];
-        const user = users.find(u => u.id === userId);
+        const user = users.find(u => u.id === userId || (userId && u.username === userId));
 
         if (user) {
-          const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
-          if (!isOwnerOrAdmin || !sessionId || user.activeSessionId === sessionId) {
-            user.activeSessionId = null;
-            user.lastHeartbeat = null;
-            user.isOnline = false;
-            saveServerData(dbData);
-          }
+          user.activeSessionId = null;
+          user.lastHeartbeat = null;
+          user.isOnline = false;
+          saveServerData(dbData);
         }
 
         return sendJson(res, 200, { success: true });
