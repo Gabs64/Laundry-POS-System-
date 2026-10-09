@@ -4261,6 +4261,110 @@ img {
   }
 }
 
+/* Large Laptops & Standard Desktops (Max-Width: 1280px) */
+@media (max-width: 1280px) {
+  .pos-header {
+    padding: 0 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .live-clock .clock-date-part {
+    display: none;
+  }
+
+  .live-clock {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .pos-terminal-tag .tag-sub {
+    display: none;
+  }
+
+  .btn-header-action {
+    height: 40px;
+    padding: 0 0.75rem;
+    font-size: 0.82rem;
+    gap: 0.45rem;
+  }
+
+  .btn-logout {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Medium Laptops & Compact Desktops (Max-Width: 1080px) */
+@media (max-width: 1080px) {
+  .pos-header {
+    padding: 0 0.75rem;
+    gap: 0.5rem;
+    height: 58px;
+    min-height: 58px;
+    max-height: 58px;
+  }
+
+  .store-icon-wrapper {
+    width: 34px;
+    height: 34px;
+  }
+
+  .store-name-display {
+    font-size: 1rem;
+  }
+
+  .pos-terminal-tag {
+    display: none;
+  }
+
+  .live-clock {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.74rem;
+  }
+
+  .btn-header-action {
+    height: 38px;
+    padding: 0 0.6rem;
+    font-size: 0.8rem;
+    gap: 0.4rem;
+  }
+
+  .btn-icon-nav {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .user-profile-badge {
+    padding: 0.2rem 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .avatar-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+
+  .user-name {
+    font-size: 0.78rem;
+  }
+
+  .user-role {
+    font-size: 0.6rem;
+  }
+
+  .user-att-pill {
+    display: none !important;
+  }
+
+  .btn-logout {
+    height: 38px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+  }
+}
+
 /* Tablet Portrait & Medium-Narrow Screens (Max-Width: 868px) */
 @media (max-width: 868px) {
   /* POS Header Compact */
@@ -4272,12 +4376,34 @@ img {
     display: none;
   }
 
+  .btn-header-action .action-label {
+    display: none;
+  }
+
+  .btn-header-action {
+    padding: 0 0.55rem;
+  }
+
   .user-info {
     display: none;
   }
 
   .user-profile-badge {
     padding: 0.2rem;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .btn-logout .logout-label {
+    display: none;
+  }
+
+  .btn-logout {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-md);
   }
 
   .pos-header {

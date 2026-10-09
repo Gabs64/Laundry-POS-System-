@@ -32,7 +32,7 @@
           </div>
           <div>
             <h2 class="store-name-display" id="pos-store-name">Brand Name POS</h2>
-            <span class="pos-terminal-tag"><i data-lucide="waves"></i> Laundry Terminal #1 • Philippine Peso (₱)</span>
+            <span class="pos-terminal-tag"><i data-lucide="waves"></i> <span class="tag-main">Laundry Terminal #1</span> <span class="tag-sub">• Philippine Peso (₱)</span></span>
           </div>
         </div>
       </div>
@@ -40,7 +40,7 @@
       <div class="header-center">
         <div class="live-clock" id="live-clock">
           <i data-lucide="clock"></i>
-          <span id="clock-display">Oct 5, 2026 • 11:32 AM</span>
+          <span id="clock-display"><span class="clock-date-part">Oct 5, 2026 • </span><span class="clock-time-part">11:32:00 AM</span></span>
         </div>
       </div>
 
@@ -48,13 +48,13 @@
         <!-- Laundry Order Tracker & Pickups Modal Trigger -->
         <button type="button" class="btn-header-action btn-tracker-action" id="btn-laundry-tracker" title="Laundry Status Tracker & Pickups" onclick="CashierPOS.openLaundryTrackerModal()">
           <i data-lucide="sparkles"></i>
-          <span>Laundry Tracker</span>
+          <span class="action-label">Laundry Tracker</span>
           <span class="header-tracker-badge" id="header-active-laundry-count">3 Active</span>
         </button>
 
         <button type="button" class="btn-header-action" id="btn-recent-sales" title="Recent Transactions" onclick="CashierPOS.openRecentSalesModal()">
           <i data-lucide="history"></i>
-          <span>Sales Log</span>
+          <span class="action-label">Sales Log</span>
         </button>
 
         <button type="button" class="btn-icon-nav btn-icon-only" id="btn-theme-toggle" title="Toggle Theme" onclick="PosSite.toggleTheme()">
@@ -81,9 +81,9 @@
           </div>
         </div>
 
-        <button type="button" class="btn btn-danger btn-logout" onclick="PosSite.confirmLogout()">
+        <button type="button" class="btn btn-danger btn-logout" onclick="PosSite.confirmLogout()" title="Logout">
           <i data-lucide="log-out"></i>
-          <span>Logout</span>
+          <span class="logout-label">Logout</span>
         </button>
       </div>
     </header>
@@ -880,13 +880,16 @@
       startLiveClock() {
         const update = () => {
           const now = new Date();
-          const formatted = now.toLocaleDateString('en-US', {
+          const datePart = now.toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric'
-          }) + " • " + now.toLocaleTimeString('en-US', {
+          });
+          const timePart = now.toLocaleTimeString('en-US', {
             hour: '2-digit', minute: '2-digit', second: '2-digit'
           });
           const clock = document.getElementById("clock-display");
-          if (clock) clock.textContent = formatted;
+          if (clock) {
+            clock.innerHTML = `<span class="clock-date-part">${datePart} • </span><span class="clock-time-part">${timePart}</span>`;
+          }
         };
         update();
         setInterval(update, 1000);
