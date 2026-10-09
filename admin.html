@@ -1345,27 +1345,17 @@
       },
 
       checkAuth() {
-        const stored = localStorage.getItem("POS_ACTIVE_USER");
+        const stored = localStorage.getItem("POS_ACTIVE_USER") || sessionStorage.getItem("POS_ACTIVE_USER");
         if (stored) {
           try {
             this.currentUser = JSON.parse(stored);
           } catch (e) { }
         }
 
-        // Fallback admin user if opened directly without prior login
-        if (!this.currentUser) {
-          const users = StorageManager.get().users || [];
-          this.currentUser = users.find(u => u.role === "ADMIN") || users[0] || {
-            id: "usr-admin",
-            fullName: "Administrator",
-            username: "admin",
-            role: "ADMIN"
-          };
-          localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(this.currentUser));
-        }
-
-        if (typeof AttendanceManager !== "undefined") {
-          AttendanceManager.recordTimeIn(this.currentUser);
+        // If not authenticated or not an Admin, redirect to login portal
+        if (!this.currentUser || !this.currentUser.id || this.currentUser.role !== "ADMIN") {
+          window.location.href = "index.html";
+          return;
         }
 
         this.updateHeader();

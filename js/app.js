@@ -65,33 +65,60 @@ const App = {
     }
   },
 
-  login(username, password) {
-    const data = StorageManager.get();
-    const users = data.users || [];
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+  async login(username, password) {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
 
-    if (!user) {
-      Sound.playError();
-      this.showToast("Invalid username or password.", "danger");
-      return;
+      if (res.ok) {
+        const result = await res.json();
+        if (result.success && result.user) {
+          this.currentUser = result.user;
+          sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(result.user));
+          localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(result.user));
+          if (typeof AttendanceManager !== "undefined") {
+            AttendanceManager.recordTimeIn(result.user);
+          }
+          Sound.playSuccess();
+          this.showToast(`Welcome back, ${result.user.fullName}!`, "success");
+          this.routeUserToRole();
+          return;
+        }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Invalid username or password.");
+      }
+    } catch (e) {
+      // Offline fallback
+      const data = StorageManager.get();
+      const users = data.users || [];
+      const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
+      if (!user) {
+        Sound.playError();
+        this.showToast(e.message || "Invalid username or password.", "danger");
+        return;
+      }
+
+      if (user.status === "disabled") {
+        Sound.playError();
+        this.showToast("This user account is currently disabled. Contact Admin.", "danger");
+        return;
+      }
+
+      this.currentUser = user;
+      sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+      localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+      if (typeof AttendanceManager !== "undefined") {
+        AttendanceManager.recordTimeIn(user);
+      }
+      Sound.playSuccess();
+      this.showToast(`Welcome back, ${user.fullName}!`, "success");
+      this.routeUserToRole();
     }
-
-    if (user.status === "disabled") {
-      Sound.playError();
-      this.showToast("This user account is currently disabled. Contact Admin.", "danger");
-      return;
-    }
-
-    this.currentUser = user;
-    sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
-    localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
-    if (typeof AttendanceManager !== "undefined") {
-      AttendanceManager.recordTimeIn(user);
-    }
-    Sound.playSuccess();
-    this.showToast(`Welcome back, ${user.fullName}!`, "success");
-
-    this.routeUserToRole();
   },
 
   quickLogin(username, password) {

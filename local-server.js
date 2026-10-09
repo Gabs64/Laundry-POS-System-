@@ -237,6 +237,84 @@ const server = http.createServer(async (req, res) => {
     }));
   }
 
+  // 5. POST /api/auth/login (Authenticates against database file)
+  if (pathname === '/api/auth/login' && req.method === 'POST') {
+    try {
+      const raw = await readBody(req);
+      const { username, password } = JSON.parse(raw);
+      if (!username || !password) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Username and password are required' }));
+      }
+
+      const dbData = cachedData || loadServerData();
+      const users = dbData.users || [];
+      const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+
+      if (!user || user.password !== password) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Invalid username or password' }));
+      }
+
+      if (user.status === 'disabled') {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Account is disabled. Contact your administrator.' }));
+      }
+
+      // Return clean authenticated user session
+      const userSession = {
+        id: user.id,
+        fullName: user.fullName,
+        username: user.username,
+        role: user.role,
+        isMaster: !!user.isMaster,
+        status: user.status
+      };
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({
+        success: true,
+        user: userSession
+      }));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+  }
+
+  // 6. POST /api/auth/verify
+  if (pathname === '/api/auth/verify' && req.method === 'POST') {
+    try {
+      const raw = await readBody(req);
+      const { userId } = JSON.parse(raw);
+      const dbData = cachedData || loadServerData();
+      const users = dbData.users || [];
+      const user = users.find(u => u.id === userId);
+
+      if (!user || user.status === 'disabled') {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, valid: false }));
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({
+        success: true,
+        valid: true,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          username: user.username,
+          role: user.role,
+          isMaster: !!user.isMaster,
+          status: user.status
+        }
+      }));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({ success: false, valid: false }));
+    }
+  }
+
   /* =========================================================
      STATIC FILE SERVING
      ========================================================= */

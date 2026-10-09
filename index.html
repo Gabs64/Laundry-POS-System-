@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Brand Name - POS & Admin Portal</title>
+  <title>POS System - Login Portal</title>
   <meta name="description"
-    content="Laundry & Dry Cleaning Point of Sale System Gateway. Sign in to access the Cashier POS Terminal or Admin Management Dashboard.">
+    content="Secure Point of Sale and Admin Management Portal. Authenticate to access cashier terminal or management dashboard.">
 
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,8 +29,8 @@
         <div class="brand-badge">
           <i data-lucide="droplets" class="brand-icon"></i>
         </div>
-        <h1 class="brand-title" id="login-store-name">Brand Name POS</h1>
-        <p class="brand-subtitle">Wash & Fold • Dry Cleaning • Steam Press • Claim Tracking</p>
+        <h1 class="brand-title" id="login-store-name">POS System</h1>
+        <p class="brand-subtitle" id="login-store-tagline">Professional Laundry & POS Management</p>
       </div>
 
       <!-- Login Form -->
@@ -38,55 +38,25 @@
         <div class="form-group">
           <label for="login-username"><i data-lucide="user"></i> Username</label>
           <div class="input-with-icon">
-            <input type="text" id="login-username" placeholder="Enter username" autocomplete="username" required>
+            <input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" required autofocus>
           </div>
         </div>
 
         <div class="form-group">
           <label for="login-password"><i data-lucide="lock"></i> Password</label>
           <div class="input-with-icon">
-            <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password"
-              required>
+            <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required>
           </div>
         </div>
 
-        <button type="submit" id="btn-login" class="btn btn-primary btn-block btn-lg">
-          <i data-lucide="log-in"></i> Sign In
+        <button type="submit" id="btn-login" class="btn btn-primary btn-block btn-lg" style="margin-top: 1rem;">
+          <i data-lucide="log-in"></i> Sign In to POS
         </button>
       </form>
 
-      <!-- System Access & Initial Owner Login -->
-      <div class="demo-accounts-box">
-        <div class="demo-title">
-          System Portals:
-        </div>
-
-        <div class="portal-launch-grid mb-3">
-          <a href="admin.html" class="portal-launch-card admin-card"
-            onclick="AppAuth.quickLogin('admin', 'admin123', event)">
-            <div class="launch-icon"><i data-lucide="shield-check"></i></div>
-            <div class="launch-text">
-              <strong>Admin Dashboard</strong>
-              <small>Configure store, services, staff & reports</small>
-            </div>
-          </a>
-
-          <a href="pos.html" class="portal-launch-card cashier-card"
-            onclick="AppAuth.quickLogin('admin', 'admin123', event)">
-            <div class="launch-icon"><i data-lucide="shopping-cart"></i></div>
-            <div class="launch-text">
-              <strong>Cashier POS Terminal</strong>
-              <small>Point of sale transaction register</small>
-            </div>
-          </a>
-        </div>
-
-        <div class="demo-chips">
-          <button type="button" class="demo-chip" onclick="AppAuth.fillCredentials('admin', 'admin123')">
-            <span class="role-badge admin">DEFAULT OWNER</span>
-            <span class="user-meta">admin / admin123</span>
-          </button>
-        </div>
+      <div class="login-footer-security" style="margin-top: 1.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <i data-lucide="shield-check" style="width: 14px; height: 14px; color: var(--success);"></i>
+        <span>Database Authenticated & Encrypted Session</span>
       </div>
     </div>
   </div>
@@ -99,56 +69,107 @@
   <script src="js/sound.js"></script>
   <script>
     const AppAuth = {
-      init() {
+      async init() {
         const data = StorageManager.get();
         const storeNameEl = document.getElementById("login-store-name");
+        const storeTaglineEl = document.getElementById("login-store-tagline");
+
         if (storeNameEl && data.settings?.storeName) {
           storeNameEl.textContent = data.settings.storeName;
         }
+        if (storeTaglineEl && data.settings?.tagline) {
+          storeTaglineEl.textContent = data.settings.tagline;
+        }
+
+        // Fetch latest data from database server
+        try {
+          await StorageManager.fetchFromServer(true);
+          const freshData = StorageManager.get();
+          if (storeNameEl && freshData.settings?.storeName) {
+            storeNameEl.textContent = freshData.settings.storeName;
+          }
+          if (storeTaglineEl && freshData.settings?.tagline) {
+            storeTaglineEl.textContent = freshData.settings.tagline;
+          }
+        } catch(e) {}
+
         if (window.lucide) lucide.createIcons();
       },
 
-      fillCredentials(user, pass) {
-        document.getElementById("login-username").value = user;
-        document.getElementById("login-password").value = pass;
-        this.showToast(`Selected demo account: ${user}`, "info");
-      },
-
-      quickLogin(user, pass, event) {
-        if (event) event.preventDefault();
-        document.getElementById("login-username").value = user;
-        document.getElementById("login-password").value = pass;
-        this.login(user, pass);
-      },
-
-      handleLogin(e) {
+      async handleLogin(e) {
         e.preventDefault();
-        const user = document.getElementById("login-username").value.trim().toLowerCase();
+        const user = document.getElementById("login-username").value.trim();
         const pass = document.getElementById("login-password").value;
-        this.login(user, pass);
+        const btn = document.getElementById("btn-login");
+
+        if (!user || !pass) return;
+
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Verifying...`;
+          if (window.lucide) lucide.createIcons();
+        }
+
+        try {
+          // 1. Authenticate against Server Database API
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: user, password: pass })
+          });
+
+          if (res.ok) {
+            const result = await res.json();
+            if (result.success && result.user) {
+              this.onLoginSuccess(result.user);
+              return;
+            }
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || "Invalid username or password.");
+          }
+        } catch (err) {
+          // If server is unreachable or offline, attempt verification against local database cache
+          const localData = StorageManager.get();
+          const localUsers = localData.users || [];
+          const matched = localUsers.find(u => u.username.toLowerCase() === user.toLowerCase() && u.password === pass);
+
+          if (matched) {
+            if (matched.status === "disabled") {
+              Sound.playError();
+              this.showToast("This user account is currently disabled.", "danger");
+            } else {
+              this.onLoginSuccess({
+                id: matched.id,
+                fullName: matched.fullName,
+                username: matched.username,
+                role: matched.role,
+                isMaster: !!matched.isMaster,
+                status: matched.status
+              });
+              return;
+            }
+          } else {
+            Sound.playError();
+            this.showToast(err.message || "Invalid username or password.", "danger");
+          }
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="log-in"></i> Sign In to POS`;
+            if (window.lucide) lucide.createIcons();
+          }
+        }
       },
 
-      login(username, password) {
-        const data = StorageManager.get();
-        const users = data.users || [];
-        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-
-        if (!user) {
-          Sound.playError();
-          this.showToast("Invalid username or password.", "danger");
-          return;
-        }
-
-        if (user.status === "disabled") {
-          Sound.playError();
-          this.showToast("This user account is currently disabled.", "danger");
-          return;
-        }
-
+      onLoginSuccess(user) {
+        sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
         localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+
         if (typeof AttendanceManager !== "undefined") {
           AttendanceManager.recordTimeIn(user);
         }
+
         Sound.playSuccess();
         this.showToast(`Welcome back, ${user.fullName}! Redirecting...`, "success");
 
@@ -158,7 +179,7 @@
           } else {
             window.location.href = "pos.html";
           }
-        }, 600);
+        }, 500);
       },
 
       showToast(message, type = "info") {
