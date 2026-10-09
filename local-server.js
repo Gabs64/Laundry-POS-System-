@@ -600,18 +600,17 @@ const server = http.createServer(async (req, res) => {
         const isOwnerOrAdmin = user.isMaster || user.role === 'ADMIN' || user.id === 'usr-admin';
 
         // Check if session is still the authorized active session (for staff accounts)
-        if (!isOwnerOrAdmin && user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
-          return sendJson(res, 200, {
-            success: true,
-            active: false,
-            reason: 'Your session has ended because another device session became active or it was disconnected.'
-          });
+        if (!isOwnerOrAdmin) {
+          if (!user.activeSessionId || (sessionId && user.activeSessionId !== sessionId)) {
+            return sendJson(res, 200, {
+              success: true,
+              active: false,
+              reason: 'Your device session has been freed by the Administrator or logged in on another device.'
+            });
+          }
         }
 
         // Refresh heartbeat
-        if (!isOwnerOrAdmin) {
-          user.activeSessionId = sessionId || user.activeSessionId;
-        }
         user.lastHeartbeat = Date.now();
         user.isOnline = true;
         saveServerData(dbData);

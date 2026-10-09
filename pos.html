@@ -590,7 +590,7 @@
       <div class="confirm-icon-circle" style="width: 76px; height: 76px; margin: 0 auto 1.25rem; background: rgba(245, 158, 11, 0.15); border: 2px solid rgba(245, 158, 11, 0.4); color: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);">
         <i data-lucide="clock" style="width: 38px; height: 38px;"></i>
       </div>
-      <h3 class="confirm-title" style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 0.6rem;">Shift Timed Out by Admin</h3>
+      <h3 class="confirm-title" id="timeout-modal-title" style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 0.6rem;">Shift Timed Out by Admin</h3>
       <p class="confirm-message" id="timeout-modal-message" style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.25rem;">
         The Administrator has clocked you out from staff attendance. Your work session has been completed and saved to the database.
       </p>
@@ -710,12 +710,12 @@
           try {
             const res = await StorageManager.sendHeartbeat(this.currentUser.id, this.currentSessionId);
             if (res && res.active === false) {
-              this.forceLogout(res.reason || "This session has ended or is active on another device.");
+              this.showTimeoutModal(null, res.reason || "Your device session was freed by the Administrator.", "Device Session Disconnected");
             }
           } catch (e) {}
         };
         send();
-        this._heartbeatTimer = setInterval(send, 4000);
+        this._heartbeatTimer = setInterval(send, 3000);
       },
 
       setupUnloadBeacon() {
@@ -739,14 +739,16 @@
         const dbUser = (data.users || []).find(u => u.id === this.currentUser.id);
         if (dbUser && dbUser.status === "disabled") {
           const reason = dbUser.autoDisableReason || "Your staff account has been deactivated by the Administrator.";
-          this.showTimeoutModal(null, reason);
+          this.showTimeoutModal(null, reason, "Account Deactivated");
           return;
         }
 
-        // 2. Check if another session took over or account was disconnected
-        if (dbUser && dbUser.activeSessionId && this.currentSessionId && dbUser.activeSessionId !== this.currentSessionId) {
-          this.forceLogout("Another device or session has logged into this account. Strictly 1 device is allowed.");
-          return;
+        // 2. Check if another session took over or account was disconnected / freed
+        if (dbUser && this.currentSessionId) {
+          if (!dbUser.activeSessionId || dbUser.activeSessionId !== this.currentSessionId) {
+            this.showTimeoutModal(null, "Your device session has been freed by the Administrator or logged in on another device.", "Device Session Disconnected");
+            return;
+          }
         }
 
         // 3. Check if THIS device's active attendance session was specifically timed out by Admin
@@ -754,7 +756,7 @@
         if (activeAttId && Array.isArray(data.attendance)) {
           const matchedPunch = data.attendance.find(a => a.id === activeAttId);
           if (matchedPunch && (matchedPunch.timedOutByAdmin === true || (matchedPunch.status === "COMPLETED" && (matchedPunch.notes || "").includes("Admin Time-Out")))) {
-            this.showTimeoutModal(matchedPunch, "You have been clocked out by the Administrator. Your shift session has ended.");
+            this.showTimeoutModal(matchedPunch, "You have been clocked out by the Administrator. Your shift session has ended.", "Shift Timed Out by Admin");
             return;
           }
         }
@@ -762,7 +764,7 @@
         this.updateHeader();
       },
 
-      showTimeoutModal(punchRecord, reason) {
+      showTimeoutModal(punchRecord, reason, title = "Shift Timed Out by Admin") {
         if (this._hasShownTimeoutModal) return;
         this._hasShownTimeoutModal = true;
         this._isLoggingOut = true;
@@ -775,17 +777,22 @@
 
         const modal = document.getElementById("modal-admin-timeout");
         if (modal) {
-          if (punchRecord) {
-            const shiftInfo = document.getElementById("timeout-modal-shift-info");
+          const titleEl = document.getElementById("timeout-modal-title");
+          if (titleEl && title) titleEl.textContent = title;
+
+          const shiftInfo = document.getElementById("timeout-modal-shift-info");
+          if (punchRecord && shiftInfo) {
             const tIn = document.getElementById("timeout-info-timein");
             const tOut = document.getElementById("timeout-info-timeout");
             const tDur = document.getElementById("timeout-info-duration");
-            if (shiftInfo && tIn && tOut && tDur) {
+            if (tIn && tOut && tDur) {
               tIn.textContent = punchRecord.timeIn ? new Date(punchRecord.timeIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : "--";
               tOut.textContent = punchRecord.timeOut ? new Date(punchRecord.timeOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : "Just now";
               tDur.textContent = punchRecord.totalHoursFormatted || (typeof AttendanceManager !== "undefined" && punchRecord.totalMinutes ? AttendanceManager.formatDuration(punchRecord.totalMinutes) : "--");
               shiftInfo.style.display = "block";
             }
+          } else if (shiftInfo) {
+            shiftInfo.style.display = "none";
           }
           if (reason) {
             const msgEl = document.getElementById("timeout-modal-message");

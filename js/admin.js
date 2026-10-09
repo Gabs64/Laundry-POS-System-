@@ -1434,16 +1434,16 @@ const AdminPanel = {
             </div>
           </div>
           <div class="user-card-body">
-            <div class="user-meta-chip">
-              <span class="label">Role:</span>
+            <div class="user-meta-row">
+              <span class="user-meta-label">Role:</span>
               <span class="role-badge ${u.role.toLowerCase()}">${u.role}</span>
             </div>
-            <div class="user-meta-chip">
-              <span class="label">Status:</span>
+            <div class="user-meta-row">
+              <span class="user-meta-label">Status:</span>
               ${statusBadge}
             </div>
-            <div class="user-meta-chip">
-              <span class="label">Device:</span>
+            <div class="user-meta-row">
+              <span class="user-meta-label">Device:</span>
               ${deviceStatusBadge}
             </div>
             ${autoDisableNotice}
@@ -1469,10 +1469,10 @@ const AdminPanel = {
               </button>
             ` : ''}
             ${isMaster 
-              ? `<span class="locked-badge"><i data-lucide="shield-check" style="width:13px; height:13px; color:var(--warning);"></i> Protected Root</span>` 
+              ? `<div class="locked-badge" style="grid-column: span 2; justify-content: center; width: 100%;"><i data-lucide="shield-check" style="width:13px; height:13px; color:var(--warning);"></i> Protected Root</div>` 
               : (!isSelf 
                 ? `<button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteUser('${u.id}')"><i data-lucide="trash-2"></i> Delete</button>` 
-                : `<small class="text-muted font-italic">Active Session</small>`
+                : `<div class="text-muted font-italic text-center" style="grid-column: span 2; font-size: 0.8rem; padding: 4px; width: 100%;">Active Session</div>`
               )
             }
           </div>
