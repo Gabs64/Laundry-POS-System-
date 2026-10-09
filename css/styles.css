@@ -101,14 +101,10 @@
 html, body {
   width: 100%;
   height: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
-  position: fixed;
-  inset: 0;
-  touch-action: manipulation;
-  overscroll-behavior: none;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   -webkit-text-size-adjust: 100%;
   font-family: var(--font-body);
@@ -116,6 +112,27 @@ html, body {
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -149,13 +166,10 @@ img {
 
 .pos-body, .admin-body, .pos-app-wrapper, #app-container {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   height: 100dvh;
-  max-height: 100dvh;
   min-height: 0;
   overflow: hidden;
-  position: fixed;
-  inset: 0;
   display: flex;
   flex-direction: column;
 }
@@ -2656,14 +2670,35 @@ img {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   width: 100%;
-  max-width: 520px;
-  max-height: calc(100dvh - 1.5rem);
+  max-width: 540px;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   transform: scale(0.95) translateY(10px);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   margin: auto;
+}
+
+.modal-dialog.modal-md {
+  max-width: 600px;
+}
+
+.modal-dialog.modal-lg,
+.modal-dialog.modal-category-dialog,
+.modal-dialog.modal-user-dialog,
+.modal-dialog.modal-product-dialog {
+  max-width: 720px;
+}
+
+.modal-dialog form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
 }
 
 .modal-backdrop.active .modal-dialog {
@@ -2684,7 +2719,8 @@ img {
   align-items: center;
   gap: 0.55rem;
 }
-.modal-title i {
+.modal-title i,
+.modal-title svg {
   color: var(--primary);
   width: 20px;
   height: 20px;
@@ -2710,10 +2746,11 @@ img {
 }
 
 .modal-body {
-  padding: 1rem 1.25rem;
-  flex: 1;
+  padding: 1.15rem 1.25rem;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
@@ -4119,6 +4156,49 @@ img {
 
   .tracker-grid-container {
     grid-template-columns: 1fr !important;
+  }
+
+  .pos-body {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .pos-app-wrapper {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .pos-main-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .products-section {
+    height: auto;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .product-grid-container {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  .cart-section {
+    height: auto;
+    overflow: visible;
+    border-left: none;
+  }
+
+  .cart-items-container {
+    max-height: 35vh;
+    overflow-y: auto;
   }
 }
 
