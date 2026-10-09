@@ -11,6 +11,10 @@ const AdminPanel = {
   laundryFilterStatus: "ALL",
   selectedProductCategory: "ALL",
   productViewMode: "grid",
+  attendanceMonth: new Date().toISOString().slice(0, 7), // "YYYY-MM"
+  attendanceViewMode: "table", // 'table' or 'matrix'
+  attendanceStaffFilter: "ALL",
+  attendanceStatusFilter: "ALL",
 
   init() {
     this.renderDashboard();
@@ -46,6 +50,7 @@ const AdminPanel = {
       sales: ["Sales & Claim History", "Audit all completed customer drop-offs and transactions"],
       reports: ["Laundry Reports & Analytics", "Visual performance metrics, kg processed, and revenue breakdown"],
       cashiers: ["Staff Accounts & Access", "Manage Cashier and Laundry Administrator credentials"],
+      attendance: ["Staff Attendance & Timesheets", "Monitor daily time-in/out records, monthly shift hours, and cashier punctuality"],
       settings: ["Store & Policy Settings", "Configure business profile, turnaround hours, and claim prefix"]
     };
 
@@ -68,6 +73,7 @@ const AdminPanel = {
     if (tabName === "sales") this.renderSalesTable();
     if (tabName === "reports") this.renderReports();
     if (tabName === "cashiers") this.renderUsers();
+    if (tabName === "attendance") this.renderAttendance();
     if (tabName === "settings") this.loadStoreSettings();
 
     if (window.lucide) lucide.createIcons();
@@ -105,6 +111,10 @@ const AdminPanel = {
     const lowStockEl = document.getElementById("kpi-low-stock-count");
     const sidebarActiveBadge = document.getElementById("sidebar-active-laundry-count");
     const sidebarLowBadge = document.getElementById("sidebar-low-stock-count");
+    const sidebarAttendanceBadge = document.getElementById("sidebar-active-attendance-count");
+
+    const attendanceRecords = data.attendance || [];
+    const activeStaffCount = attendanceRecords.filter(a => a.status === "CLOCKED_IN").length;
 
     if (todaySalesEl) todaySalesEl.textContent = `₱${todayRevenue.toFixed(2)}`;
     if (activeOrdersEl) activeOrdersEl.textContent = activeOrders.length.toString();
@@ -120,6 +130,10 @@ const AdminPanel = {
     if (sidebarLowBadge) {
       sidebarLowBadge.textContent = lowStockSupplies.length.toString();
       sidebarLowBadge.style.display = lowStockSupplies.length > 0 ? "inline-block" : "none";
+    }
+    if (sidebarAttendanceBadge) {
+      sidebarAttendanceBadge.textContent = `${activeStaffCount} on duty`;
+      sidebarAttendanceBadge.style.display = activeStaffCount > 0 ? "inline-block" : "none";
     }
 
     // Render Recent Transactions
@@ -1435,7 +1449,467 @@ const AdminPanel = {
   },
 
   /* =========================================================
-     9. STORE SETTINGS TAB
+     9. STAFF ATTENDANCE & TIMESHEETS
+     ========================================================= */
+  renderAttendance() {
+    const data = StorageManager.get();
+    const users = data.users || [];
+    const allAttendance = data.attendance || [];
+
+    // Ensure attendanceMonth is set
+    if (!this.attendanceMonth) {
+      const now = new Date();
+      this.attendanceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // Populate Staff Filter Dropdown
+    const staffSelect = document.getElementById("admin-attendance-staff-filter");
+    if (staffSelect) {
+      const currentVal = staffSelect.value || this.attendanceStaffFilter || "ALL";
+      let optHtml = `<option value="ALL">All Staff Members (${users.length})</option>`;
+      users.forEach(u => {
+        optHtml += `<option value="${u.id}">${u.fullName} (${u.role})</option>`;
+      });
+      staffSelect.innerHTML = optHtml;
+      staffSelect.value = currentVal;
+    }
+
+    // Update Month Label in Toolbar
+    const [yearStr, monthStr] = this.attendanceMonth.split("-");
+    const year = parseInt(yearStr);
+    const month = parseInt(monthStr) - 1; // 0-indexed
+    const monthDate = new Date(year, month, 1);
+    const monthLabelEl = document.getElementById("attendance-month-label");
+    if (monthLabelEl) {
+      monthLabelEl.textContent = monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    const matrixTitleEl = document.getElementById("matrix-table-title");
+    if (matrixTitleEl) {
+      matrixTitleEl.textContent = `Staff Timesheet Matrix — ${monthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
+    }
+
+    // Filter by selected month: a.date starts with "YYYY-MM"
+    const monthPrefix = this.attendanceMonth;
+    const monthRecords = allAttendance.filter(a => a.date && a.date.startsWith(monthPrefix));
+
+    // Calculate Monthly KPIs
+    const totalShifts = monthRecords.length;
+    const totalMinutes = monthRecords.reduce((sum, a) => sum + (a.totalMinutes || 0), 0);
+    const avgMinutes = totalShifts > 0 ? Math.round(totalMinutes / totalShifts) : 0;
+
+    // Active now across all records
+    const activeStaff = allAttendance.filter(a => a.status === "CLOCKED_IN");
+    const activeStaffCount = activeStaff.length;
+
+    // Update KPIs
+    const kpiShifts = document.getElementById("att-kpi-total-shifts");
+    const kpiShiftsSub = document.getElementById("att-kpi-shifts-subtext");
+    const kpiHours = document.getElementById("att-kpi-total-hours");
+    const kpiHoursSub = document.getElementById("att-kpi-hours-subtext");
+    const kpiAvg = document.getElementById("att-kpi-avg-shift");
+    const kpiActive = document.getElementById("att-kpi-active-now");
+    const kpiActiveNames = document.getElementById("att-kpi-active-staff-names");
+    const sidebarBadge = document.getElementById("sidebar-active-attendance-count");
+
+    if (kpiShifts) kpiShifts.textContent = totalShifts;
+    if (kpiShiftsSub) kpiShiftsSub.textContent = `${activeStaffCount} active today`;
+    if (kpiHours) kpiHours.textContent = typeof AttendanceManager !== "undefined" ? AttendanceManager.formatDuration(totalMinutes) : `${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`;
+    if (kpiHoursSub) kpiHoursSub.textContent = `Across ${totalShifts} shift logs`;
+    if (kpiAvg) kpiAvg.textContent = typeof AttendanceManager !== "undefined" ? AttendanceManager.formatDuration(avgMinutes) : `${Math.floor(avgMinutes/60)}h`;
+    if (kpiActive) kpiActive.textContent = activeStaffCount;
+    if (kpiActiveNames) {
+      if (activeStaffCount > 0) {
+        kpiActiveNames.textContent = activeStaff.map(a => a.userName).join(", ");
+      } else {
+        kpiActiveNames.textContent = "No staff clocked in right now";
+      }
+    }
+    if (sidebarBadge) {
+      sidebarBadge.textContent = activeStaffCount;
+      sidebarBadge.style.display = activeStaffCount > 0 ? "inline-flex" : "none";
+    }
+
+    // Apply Staff and Status Filters for table/matrix display
+    const selectedStaff = document.getElementById("admin-attendance-staff-filter")?.value || "ALL";
+    const selectedStatus = document.getElementById("admin-attendance-status-filter")?.value || "ALL";
+
+    let filteredRecords = monthRecords;
+    if (selectedStaff !== "ALL") {
+      filteredRecords = filteredRecords.filter(a => a.userId === selectedStaff);
+    }
+    if (selectedStatus !== "ALL") {
+      filteredRecords = filteredRecords.filter(a => a.status === selectedStatus);
+    }
+
+    // Render Table and Matrix views
+    this.renderAttendanceTable(filteredRecords);
+    this.renderAttendanceMatrix(monthRecords, users, year, month);
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  changeAttendanceMonth(delta) {
+    if (!this.attendanceMonth) {
+      const now = new Date();
+      this.attendanceMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+    const [y, m] = this.attendanceMonth.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    this.attendanceMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    this.renderAttendance();
+  },
+
+  switchAttendanceView(mode) {
+    this.attendanceViewMode = mode;
+    const tableContainer = document.getElementById("attendance-table-container");
+    const matrixContainer = document.getElementById("attendance-matrix-container");
+    const btnTable = document.getElementById("btn-att-table-view");
+    const btnMatrix = document.getElementById("btn-att-matrix-view");
+
+    if (mode === "table") {
+      if (tableContainer) tableContainer.style.display = "block";
+      if (matrixContainer) matrixContainer.style.display = "none";
+      if (btnTable) btnTable.classList.add("active");
+      if (btnMatrix) btnMatrix.classList.remove("active");
+    } else {
+      if (tableContainer) tableContainer.style.display = "none";
+      if (matrixContainer) matrixContainer.style.display = "block";
+      if (btnTable) btnTable.classList.remove("active");
+      if (btnMatrix) btnMatrix.classList.add("active");
+    }
+    if (window.lucide) lucide.createIcons();
+  },
+
+  filterAttendance() {
+    this.renderAttendance();
+  },
+
+  renderAttendanceTable(records) {
+    const tbody = document.getElementById("admin-attendance-tbody");
+    if (!tbody) return;
+
+    if (records.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" class="text-center py-5 text-muted">
+            <i data-lucide="calendar-x" style="width:36px; height:36px; stroke-width:1.5; margin-bottom:8px; display:inline-block;"></i>
+            <p>No attendance logs found for the selected month and filter criteria.</p>
+          </td>
+        </tr>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    // Sort descending by date and timeIn
+    const sorted = [...records].sort((a, b) => new Date(b.timeIn || b.date) - new Date(a.timeIn || a.date));
+
+    let html = "";
+    sorted.forEach(r => {
+      const d = new Date(r.date + "T00:00:00");
+      const dateFormatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", weekday: "short" });
+
+      const timeInFmt = r.timeIn ? new Date(r.timeIn).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "--";
+
+      let timeOutFmt = "--";
+      if (r.status === "CLOCKED_IN") {
+        timeOutFmt = `<span class="badge badge-success" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="radio" style="width:12px; height:12px;"></i> Currently Clocked In</span>`;
+      } else if (r.timeOut) {
+        timeOutFmt = new Date(r.timeOut).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      }
+
+      let durationFmt = r.totalHoursFormatted || "--";
+      if (r.status === "CLOCKED_IN" && r.timeIn) {
+        const liveMins = Math.max(1, Math.round((new Date() - new Date(r.timeIn)) / 60000));
+        durationFmt = `<span class="text-success" style="font-weight:700;">${AttendanceManager.formatDuration(liveMins)} (Live)</span>`;
+      }
+
+      const statusBadge = r.status === "CLOCKED_IN"
+        ? `<span class="badge badge-success">ACTIVE</span>`
+        : `<span class="badge badge-secondary">COMPLETED</span>`;
+
+      const initials = (r.userName || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+      html += `
+        <tr>
+          <td><strong>${dateFormatted}</strong></td>
+          <td>
+            <div class="table-user-cell" style="display:flex; align-items:center; gap:8px;">
+              <div class="avatar-circle small" style="width:30px; height:30px; font-size:0.75rem;">${initials}</div>
+              <div>
+                <strong>${r.userName}</strong>
+              </div>
+            </div>
+          </td>
+          <td><span class="role-badge ${(r.userRole || '').toLowerCase()}">${r.userRole || 'STAFF'}</span></td>
+          <td><span class="font-mono text-muted"><i data-lucide="log-in" style="width:13px; height:13px; vertical-align:middle;"></i> ${timeInFmt}</span></td>
+          <td><span class="font-mono text-muted">${timeOutFmt}</span></td>
+          <td><strong>${durationFmt}</strong></td>
+          <td>${statusBadge}</td>
+          <td><small class="text-muted">${r.notes || "—"}</small></td>
+          <td class="text-right">
+            ${r.status === "CLOCKED_IN" ? `
+              <button type="button" class="btn btn-warning btn-sm mr-1" onclick="AdminPanel.manualClockOut('${r.id}')" title="Force Time-Out Now">
+                <i data-lucide="log-out"></i> Time-Out
+              </button>
+            ` : ''}
+            <button type="button" class="btn btn-secondary btn-sm mr-1" onclick="AdminPanel.openAttendanceModal('${r.id}')" title="Edit Punch Log">
+              <i data-lucide="edit-2"></i>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteAttendance('${r.id}')" title="Delete Log">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+  },
+
+  renderAttendanceMatrix(records, users, year, month) {
+    const thead = document.getElementById("admin-attendance-matrix-thead");
+    const tbody = document.getElementById("admin-attendance-matrix-tbody");
+    if (!thead || !tbody) return;
+
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+    const currentDay = today.getDate();
+
+    // Generate Thead with all month days
+    let thHtml = `<tr><th style="min-width:180px; position:sticky; left:0; z-index:2; background:var(--bg-surface);">Staff Member</th>`;
+    for (let day = 1; day <= totalDays; day++) {
+      const d = new Date(year, month, day);
+      const dayName = d.toLocaleDateString("en-US", { weekday: "narrow" });
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      const isToday = isCurrentMonth && day === currentDay;
+      const thStyle = isToday ? 'background:rgba(2,132,199,0.25); color:var(--primary); font-weight:bold;' : (isWeekend ? 'opacity:0.75;' : '');
+
+      thHtml += `<th class="text-center" style="min-width:38px; padding:6px 2px; ${thStyle}" title="${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}">
+        <div style="font-size:0.7rem;">${dayName}</div>
+        <div>${day}</div>
+      </th>`;
+    }
+    thHtml += `<th class="text-center" style="min-width:70px;">Days</th><th class="text-center" style="min-width:85px;">Total Hrs</th></tr>`;
+    thead.innerHTML = thHtml;
+
+    // Filter staff if a specific staff filter is active
+    const selectedStaff = document.getElementById("admin-attendance-staff-filter")?.value || "ALL";
+    const staffList = selectedStaff === "ALL" ? users : users.filter(u => u.id === selectedStaff);
+
+    if (staffList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${totalDays + 3}" class="text-center py-4 text-muted">No staff found.</td></tr>`;
+      return;
+    }
+
+    let tbHtml = "";
+    staffList.forEach(u => {
+      const userRecords = records.filter(r => r.userId === u.id);
+      const initials = (u.fullName || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+
+      let totalStaffMinutes = 0;
+      let daysPresentCount = 0;
+
+      let daysCells = "";
+      for (let day = 1; day <= totalDays; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayLogs = userRecords.filter(r => r.date === dateStr);
+        const isToday = isCurrentMonth && day === currentDay;
+
+        if (dayLogs.length > 0) {
+          daysPresentCount++;
+          const dayMins = dayLogs.reduce((sum, l) => sum + (l.totalMinutes || 0), 0);
+          totalStaffMinutes += dayMins;
+          const hasActive = dayLogs.some(l => l.status === "CLOCKED_IN");
+
+          const hrsDecimal = (dayMins / 60).toFixed(1);
+          const cellBadgeBg = hasActive ? "var(--success)" : "var(--primary)";
+          const timeInStr = dayLogs[0].timeIn ? new Date(dayLogs[0].timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+          const timeOutStr = dayLogs[0].timeOut ? new Date(dayLogs[0].timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (hasActive ? 'Active' : '');
+
+          daysCells += `<td class="text-center" style="padding:4px 2px; ${isToday ? 'background:rgba(2,132,199,0.1);' : ''}">
+            <span class="matrix-cell-pill" style="display:inline-block; font-size:0.7rem; font-weight:700; padding:2px 4px; border-radius:4px; background:${cellBadgeBg}; color:#fff; cursor:help;" title="${dateStr}: ${timeInStr} - ${timeOutStr} (${AttendanceManager.formatDuration(dayMins)})">
+              ${hrsDecimal}h
+            </span>
+          </td>`;
+        } else {
+          daysCells += `<td class="text-center text-muted" style="padding:4px 2px; font-size:0.7rem; ${isToday ? 'background:rgba(2,132,199,0.05);' : ''}">
+            <span style="opacity:0.25;">—</span>
+          </td>`;
+        }
+      }
+
+      const totalHrsDecimal = (totalStaffMinutes / 60).toFixed(1);
+
+      tbHtml += `<tr>
+        <td style="position:sticky; left:0; z-index:1; background:var(--bg-surface); font-weight:600;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="avatar-circle small" style="width:26px; height:26px; font-size:0.7rem;">${initials}</div>
+            <div>
+              <div>${u.fullName}</div>
+              <small class="text-muted" style="font-size:0.7rem;">${u.role}</small>
+            </div>
+          </div>
+        </td>
+        ${daysCells}
+        <td class="text-center font-weight-bold"><span class="badge badge-secondary">${daysPresentCount} d</span></td>
+        <td class="text-center font-weight-bold text-primary">${totalHrsDecimal} hrs</td>
+      </tr>`;
+    });
+
+    tbody.innerHTML = tbHtml;
+  },
+
+  openAttendanceModal(recordId = null) {
+    const modal = document.getElementById("modal-attendance");
+    const title = document.getElementById("attendance-modal-title");
+    const userSelect = document.getElementById("att-user-select");
+    const form = document.getElementById("form-attendance");
+
+    if (form) form.reset();
+
+    // Populate staff dropdown
+    const data = StorageManager.get();
+    const users = data.users || [];
+    if (userSelect) {
+      userSelect.innerHTML = users.map(u => `<option value="${u.id}">${u.fullName} (${u.role})</option>`).join("");
+    }
+
+    if (recordId) {
+      if (title) title.textContent = "Edit Staff Attendance Punch";
+      const record = (data.attendance || []).find(a => a.id === recordId);
+      if (record) {
+        document.getElementById("att-record-id").value = record.id;
+        if (userSelect) userSelect.value = record.userId;
+        document.getElementById("att-date-input").value = record.date;
+        if (record.timeIn) {
+          const tIn = new Date(record.timeIn);
+          document.getElementById("att-timein-input").value = `${String(tIn.getHours()).padStart(2, '0')}:${String(tIn.getMinutes()).padStart(2, '0')}`;
+        }
+        if (record.timeOut) {
+          const tOut = new Date(record.timeOut);
+          document.getElementById("att-timeout-input").value = `${String(tOut.getHours()).padStart(2, '0')}:${String(tOut.getMinutes()).padStart(2, '0')}`;
+        } else {
+          document.getElementById("att-timeout-input").value = "";
+        }
+        document.getElementById("att-notes-input").value = record.notes || "";
+      }
+    } else {
+      if (title) title.textContent = "Record Staff Attendance Log";
+      document.getElementById("att-record-id").value = "";
+      document.getElementById("att-date-input").value = AttendanceManager.getLocalDateString();
+      const now = new Date();
+      document.getElementById("att-timein-input").value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      document.getElementById("att-timeout-input").value = "";
+      document.getElementById("att-notes-input").value = "Manual entry by Admin";
+    }
+
+    if (modal) modal.classList.add("active");
+    if (window.lucide) lucide.createIcons();
+  },
+
+  closeAttendanceModal() {
+    const modal = document.getElementById("modal-attendance");
+    if (modal) modal.classList.remove("active");
+  },
+
+  saveAttendanceForm(e) {
+    e.preventDefault();
+    const data = StorageManager.get();
+    const recordId = document.getElementById("att-record-id").value;
+    const userId = document.getElementById("att-user-select").value;
+    const dateStr = document.getElementById("att-date-input").value;
+    const timeInVal = document.getElementById("att-timein-input").value;
+    const timeOutVal = document.getElementById("att-timeout-input").value;
+    const notesVal = document.getElementById("att-notes-input").value.trim();
+
+    const user = (data.users || []).find(u => u.id === userId);
+    if (!user) return;
+
+    const timeInIso = new Date(`${dateStr}T${timeInVal}:00`).toISOString();
+    let timeOutIso = null;
+    if (timeOutVal) {
+      timeOutIso = new Date(`${dateStr}T${timeOutVal}:00`).toISOString();
+    }
+
+    const payload = {
+      id: recordId || undefined,
+      userId: user.id,
+      userName: user.fullName,
+      userRole: user.role,
+      date: dateStr,
+      timeIn: timeInIso,
+      timeOut: timeOutIso,
+      notes: notesVal || (recordId ? "Manually edited by Admin" : "Manual entry by Admin")
+    };
+
+    AttendanceManager.saveRecord(payload);
+    this.closeAttendanceModal();
+    this.renderAttendance();
+    App.showToast(`Attendance saved for ${user.fullName}`, "success");
+  },
+
+  manualClockOut(recordId) {
+    const data = StorageManager.get();
+    const record = (data.attendance || []).find(a => a.id === recordId);
+    if (!record) return;
+
+    record.timeOut = new Date().toISOString();
+    record.status = "COMPLETED";
+    const diffMs = new Date(record.timeOut) - new Date(record.timeIn);
+    record.totalMinutes = Math.max(1, Math.round(diffMs / 60000));
+    record.totalHoursFormatted = AttendanceManager.formatDuration(record.totalMinutes);
+    record.notes = (record.notes ? record.notes + " • " : "") + "Admin Time-Out";
+
+    StorageManager.save(data);
+    this.renderAttendance();
+    App.showToast(`Clocked out ${record.userName}`, "info");
+  },
+
+  confirmDeleteAttendance(recordId) {
+    App.showConfirmModal(
+      "Delete Attendance Log?",
+      "Are you sure you want to remove this attendance record?",
+      () => {
+        AttendanceManager.deleteRecord(recordId);
+        this.renderAttendance();
+        App.showToast("Attendance record deleted.", "info");
+      }
+    );
+  },
+
+  exportAttendanceCSV() {
+    const data = StorageManager.get();
+    const allAttendance = data.attendance || [];
+    const monthPrefix = this.attendanceMonth || new Date().toISOString().slice(0, 7);
+    const records = allAttendance.filter(a => a.date && a.date.startsWith(monthPrefix));
+
+    if (records.length === 0) {
+      App.showToast("No records to export for this month.", "warning");
+      return;
+    }
+
+    let csv = "Date,Staff Name,User Role,Time In,Time Out,Total Minutes,Total Hours,Status,Notes\n";
+    records.forEach(r => {
+      const tIn = r.timeIn ? new Date(r.timeIn).toLocaleString() : "";
+      const tOut = r.timeOut ? new Date(r.timeOut).toLocaleString() : (r.status === "CLOCKED_IN" ? "Clocked In" : "");
+      csv += `"${r.date}","${r.userName}","${r.userRole}","${tIn}","${tOut}",${r.totalMinutes || 0},"${r.totalHoursFormatted || ''}","${r.status}","${(r.notes || '').replace(/"/g, '""')}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", url);
+    downloadAnchor.setAttribute("download", `staff_attendance_${monthPrefix}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    App.showToast(`Exported timesheet for ${monthPrefix}`, "success");
+  },
+
+  /* =========================================================
+     10. STORE SETTINGS TAB
      ========================================================= */
   loadStoreSettings() {
     const data = StorageManager.get();

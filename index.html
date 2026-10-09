@@ -154,6 +154,9 @@
         }
 
         localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+        if (typeof AttendanceManager !== "undefined") {
+          AttendanceManager.recordTimeIn(user);
+        }
         Sound.playSuccess();
         this.showToast(`Welcome back, ${user.fullName}! Redirecting...`, "success");
 

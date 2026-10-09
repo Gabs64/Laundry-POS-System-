@@ -74,7 +74,10 @@
           <div class="avatar-circle" id="pos-user-avatar">JD</div>
           <div class="user-info">
             <span class="user-name" id="pos-user-name">John Doe</span>
-            <span class="user-role" id="pos-user-role">CASHIER</span>
+            <div class="user-subline" style="display:flex; align-items:center; gap:6px;">
+              <span class="user-role" id="pos-user-role">CASHIER</span>
+              <span class="user-att-pill" id="pos-attendance-time" style="font-size:0.7rem; color:var(--success); background:var(--success-light); padding:1px 6px; border-radius:4px; font-weight:600;">Clocked In</span>
+            </div>
           </div>
         </div>
 
@@ -637,6 +640,10 @@
           localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(this.currentUser));
         }
 
+        if (typeof AttendanceManager !== "undefined") {
+          AttendanceManager.recordTimeIn(this.currentUser);
+        }
+
         this.updateHeader();
       },
 
@@ -652,6 +659,13 @@
         const adminBtn = document.getElementById("btn-goto-admin");
         if (adminBtn) {
           adminBtn.style.display = u.role === "ADMIN" ? "inline-flex" : "none";
+        }
+
+        const activeAtt = typeof AttendanceManager !== "undefined" ? AttendanceManager.getActiveRecord(u.id) : null;
+        const attBadge = document.getElementById("pos-attendance-time");
+        if (attBadge && activeAtt && activeAtt.timeIn) {
+          const t = new Date(activeAtt.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          attBadge.textContent = `In: ${t}`;
         }
 
         this.updateStoreBrand();
@@ -705,8 +719,11 @@
       confirmLogout() {
         App.showConfirmModal(
           "Logout from POS?",
-          "Are you sure you want to end your cashier session?",
+          "Are you sure you want to end your cashier session? Your attendance time-out will be recorded.",
           () => {
+            if (this.currentUser && typeof AttendanceManager !== "undefined") {
+              AttendanceManager.recordTimeOut(this.currentUser);
+            }
             localStorage.removeItem("POS_ACTIVE_USER");
             window.location.href = "index.html";
           }

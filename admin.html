@@ -75,6 +75,11 @@
           <i data-lucide="users"></i>
           <span>Staff Accounts</span>
         </button>
+        <button class="nav-item" data-tab="attendance" onclick="AdminPanel.switchTab('attendance')">
+          <i data-lucide="calendar-check"></i>
+          <span>Staff Attendance</span>
+          <span class="sidebar-pill-badge" id="sidebar-active-attendance-count" style="display:none; background:var(--success); color:#fff;">0</span>
+        </button>
         <button class="nav-item" data-tab="settings" onclick="AdminPanel.switchTab('settings')">
           <i data-lucide="settings"></i>
           <span>Store Settings</span>
@@ -582,7 +587,157 @@
           </div>
         </div>
 
-        <!-- 9. STORE SETTINGS TAB -->
+        <!-- 9. STAFF ATTENDANCE & TIMESHEETS TAB -->
+        <div id="tab-attendance" class="tab-pane">
+          <!-- Month & Filters Toolbar -->
+          <div class="section-toolbar">
+            <div class="toolbar-left" style="display:flex; flex-wrap:wrap; align-items:center; gap:12px;">
+              <!-- Month-Year Navigator -->
+              <div class="month-navigator">
+                <button type="button" class="btn btn-secondary btn-icon-only" onclick="AdminPanel.changeAttendanceMonth(-1)" title="Previous Month">
+                  <i data-lucide="chevron-left"></i>
+                </button>
+                <div class="current-month-badge">
+                  <i data-lucide="calendar"></i>
+                  <span id="attendance-month-label">October 2026</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-icon-only" onclick="AdminPanel.changeAttendanceMonth(1)" title="Next Month">
+                  <i data-lucide="chevron-right"></i>
+                </button>
+              </div>
+
+              <!-- Staff Filter -->
+              <select id="admin-attendance-staff-filter" class="form-select mini" onchange="AdminPanel.filterAttendance()">
+                <option value="ALL">All Staff Members</option>
+                <!-- Populated dynamically -->
+              </select>
+
+              <!-- Status Filter -->
+              <select id="admin-attendance-status-filter" class="form-select mini" onchange="AdminPanel.filterAttendance()">
+                <option value="ALL">All Statuses</option>
+                <option value="CLOCKED_IN">🟢 Currently Clocked In</option>
+                <option value="COMPLETED">✓ Completed Shifts</option>
+              </select>
+
+              <!-- View Switcher -->
+              <div class="btn-group">
+                <button type="button" class="btn btn-secondary btn-sm active" id="btn-att-table-view" onclick="AdminPanel.switchAttendanceView('table')" title="Daily Punch Logs">
+                  <i data-lucide="list"></i> Daily Logs
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-att-matrix-view" onclick="AdminPanel.switchAttendanceView('matrix')" title="Monthly Timesheet Matrix">
+                  <i data-lucide="calendar-range"></i> Monthly Matrix
+                </button>
+              </div>
+            </div>
+
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-secondary" onclick="AdminPanel.exportAttendanceCSV()">
+                <i data-lucide="download"></i> Export Timesheet CSV
+              </button>
+              <button type="button" class="btn btn-primary" onclick="AdminPanel.openAttendanceModal()">
+                <i data-lucide="clock-plus"></i> Manual Log Entry
+              </button>
+            </div>
+          </div>
+
+          <!-- Monthly Attendance KPI Metric Cards -->
+          <div class="metrics-grid mt-3">
+            <div class="metric-card card-orders">
+              <div class="metric-icon-box">
+                <i data-lucide="calendar-check"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">MONTHLY SHIFTS LOGGED</span>
+                <h2 class="metric-value" id="att-kpi-total-shifts">0</h2>
+                <span class="metric-subtext" id="att-kpi-shifts-subtext">0 active today</span>
+              </div>
+            </div>
+
+            <div class="metric-card card-revenue">
+              <div class="metric-icon-box">
+                <i data-lucide="clock"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">TOTAL HOURS WORKED</span>
+                <h2 class="metric-value" id="att-kpi-total-hours">0h 0m</h2>
+                <span class="metric-subtext" id="att-kpi-hours-subtext">In selected month</span>
+              </div>
+            </div>
+
+            <div class="metric-card card-products">
+              <div class="metric-icon-box">
+                <i data-lucide="timer"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">AVG SHIFT LENGTH</span>
+                <h2 class="metric-value" id="att-kpi-avg-shift">0h</h2>
+                <span class="metric-subtext">Per staff attendance log</span>
+              </div>
+            </div>
+
+            <div class="metric-card card-alert" style="border-color: rgba(16, 185, 129, 0.4);">
+              <div class="metric-icon-box" style="background: var(--success-light); color: var(--success);">
+                <i data-lucide="user-check"></i>
+              </div>
+              <div class="metric-content">
+                <span class="metric-label">CURRENTLY ON DUTY</span>
+                <h2 class="metric-value text-success" id="att-kpi-active-now">0</h2>
+                <span class="metric-subtext" id="att-kpi-active-staff-names">No staff on shift</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1. Detailed Daily Logs Table View -->
+          <div id="attendance-table-container" class="panel-body card-container mt-4">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Staff Member</th>
+                    <th>Role</th>
+                    <th>Time In (Auto)</th>
+                    <th>Time Out</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th class="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-attendance-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 2. Monthly Timesheet Matrix View -->
+          <div id="attendance-matrix-container" class="panel-body card-container mt-4" style="display:none;">
+            <div class="matrix-header-info mb-3" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h4 style="margin:0; font-family:var(--font-heading);" id="matrix-table-title">Monthly Staff Timesheet Summary</h4>
+                <small class="text-muted">Daily shift hours for each staff member across the month</small>
+              </div>
+              <div class="matrix-legend" style="display:flex; gap:12px; font-size:0.75rem;">
+                <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; background:var(--primary);"></span> Present / Shift Logged</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; background:var(--success);"></span> Active Now</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; background:var(--bg-surface-elevated);"></span> Rest / Off Day</span>
+              </div>
+            </div>
+            <div class="table-responsive" style="overflow-x:auto;">
+              <table class="data-table matrix-table" id="attendance-matrix-table">
+                <thead id="admin-attendance-matrix-thead">
+                  <!-- Populated dynamically with Day 1..31 -->
+                </thead>
+                <tbody id="admin-attendance-matrix-tbody">
+                  <!-- Populated dynamically per staff -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10. STORE SETTINGS TAB -->
         <div id="tab-settings" class="tab-pane">
           <div class="settings-container">
             <div class="settings-card">
@@ -1097,6 +1252,60 @@
     </div>
   </div>
 
+  <!-- MANUAL ATTENDANCE / PUNCH MODAL -->
+  <div id="modal-attendance" class="modal-backdrop">
+    <div class="modal-dialog modal-md">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="clock"></i>
+          <h3 id="attendance-modal-title">Record Staff Attendance</h3>
+        </div>
+        <button type="button" class="btn-icon-nav" onclick="AdminPanel.closeAttendanceModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="form-attendance" onsubmit="AdminPanel.saveAttendanceForm(event)">
+        <input type="hidden" id="att-record-id">
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="att-user-select">Staff Member *</label>
+            <select id="att-user-select" class="form-control" required>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="att-date-input">Attendance Date *</label>
+            <input type="date" id="att-date-input" class="form-control" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="att-timein-input">Time In *</label>
+              <input type="time" id="att-timein-input" class="form-control" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="att-timeout-input">Time Out <small class="text-muted">(Leave empty if on duty)</small></label>
+              <input type="time" id="att-timeout-input" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="att-notes-input">Notes / Remarks</label>
+            <input type="text" id="att-notes-input" class="form-control" placeholder="e.g. Regular shift, Overtime, Manual adjustment">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="AdminPanel.closeAttendanceModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Attendance</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -1118,7 +1327,7 @@
         this.startLiveClock();
         this.checkAuth();
 
-        // Multi-tab real-time sync with POS cashier sales
+        // Multi-tab real-time sync with POS cashier sales and attendance
         window.addEventListener("storage", (e) => {
           if (e.key === "BRAND_NAME_POS_DATA_V3" || e.key === "AQUA_LAUNDRY_POS_DATA_V2" || e.key === "MY_STORE_POS_DATA_V1") {
             if (AdminPanel.currentTab === "dashboard") AdminPanel.renderDashboard();
@@ -1126,6 +1335,7 @@
             if (AdminPanel.currentTab === "sales") AdminPanel.renderSalesTable();
             if (AdminPanel.currentTab === "inventory") AdminPanel.renderInventoryTable();
             if (AdminPanel.currentTab === "reports") AdminPanel.renderReports();
+            if (AdminPanel.currentTab === "attendance") AdminPanel.renderAttendance();
             this.updateStoreBrand();
           }
         });
@@ -1151,6 +1361,10 @@
             role: "ADMIN"
           };
           localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(this.currentUser));
+        }
+
+        if (typeof AttendanceManager !== "undefined") {
+          AttendanceManager.recordTimeIn(this.currentUser);
         }
 
         this.updateHeader();
@@ -1215,8 +1429,11 @@
       confirmLogout() {
         App.showConfirmModal(
           "Logout from Admin?",
-          "Are you sure you want to end your administrator session?",
+          "Are you sure you want to end your administrator session? Your attendance time-out will be recorded.",
           () => {
+            if (this.currentUser && typeof AttendanceManager !== "undefined") {
+              AttendanceManager.recordTimeOut(this.currentUser);
+            }
             localStorage.removeItem("POS_ACTIVE_USER");
             window.location.href = "index.html";
           }

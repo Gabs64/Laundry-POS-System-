@@ -435,6 +435,165 @@ const SEED_DATA = {
       userName: "Administrator",
       createdAt: "2026-10-04T16:00:00.000Z"
     }
+  ],
+
+  attendance: [
+    {
+      id: "att-101",
+      userId: "usr-2",
+      userName: "John Doe",
+      userRole: "CASHIER",
+      date: "2026-10-01",
+      timeIn: "2026-10-01T07:55:10.000Z",
+      timeOut: "2026-10-01T17:05:22.000Z",
+      totalMinutes: 550,
+      totalHoursFormatted: "9h 10m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-102",
+      userId: "usr-3",
+      userName: "Maria Santos",
+      userRole: "CASHIER",
+      date: "2026-10-01",
+      timeIn: "2026-10-01T12:50:00.000Z",
+      timeOut: "2026-10-01T21:10:00.000Z",
+      totalMinutes: 500,
+      totalHoursFormatted: "8h 20m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-103",
+      userId: "usr-2",
+      userName: "John Doe",
+      userRole: "CASHIER",
+      date: "2026-10-02",
+      timeIn: "2026-10-02T08:00:00.000Z",
+      timeOut: "2026-10-02T17:00:00.000Z",
+      totalMinutes: 540,
+      totalHoursFormatted: "9h 00m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-104",
+      userId: "usr-3",
+      userName: "Maria Santos",
+      userRole: "CASHIER",
+      date: "2026-10-02",
+      timeIn: "2026-10-02T13:00:00.000Z",
+      timeOut: "2026-10-02T21:00:00.000Z",
+      totalMinutes: 480,
+      totalHoursFormatted: "8h 00m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-105",
+      userId: "usr-1",
+      userName: "Administrator",
+      userRole: "ADMIN",
+      date: "2026-10-03",
+      timeIn: "2026-10-03T08:30:00.000Z",
+      timeOut: "2026-10-03T18:00:00.000Z",
+      totalMinutes: 570,
+      totalHoursFormatted: "9h 30m",
+      status: "COMPLETED",
+      notes: "Store inspection & inventory"
+    },
+    {
+      id: "att-106",
+      userId: "usr-2",
+      userName: "John Doe",
+      userRole: "CASHIER",
+      date: "2026-10-03",
+      timeIn: "2026-10-03T07:50:00.000Z",
+      timeOut: "2026-10-03T16:50:00.000Z",
+      totalMinutes: 540,
+      totalHoursFormatted: "9h 00m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-107",
+      userId: "usr-3",
+      userName: "Maria Santos",
+      userRole: "CASHIER",
+      date: "2026-10-04",
+      timeIn: "2026-10-04T08:00:00.000Z",
+      timeOut: "2026-10-04T17:30:00.000Z",
+      totalMinutes: 570,
+      totalHoursFormatted: "9h 30m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-108",
+      userId: "usr-2",
+      userName: "John Doe",
+      userRole: "CASHIER",
+      date: "2026-10-05",
+      timeIn: "2026-10-05T07:58:00.000Z",
+      timeOut: "2026-10-05T17:02:00.000Z",
+      totalMinutes: 544,
+      totalHoursFormatted: "9h 04m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-109",
+      userId: "usr-3",
+      userName: "Maria Santos",
+      userRole: "CASHIER",
+      date: "2026-10-05",
+      timeIn: "2026-10-05T12:45:00.000Z",
+      timeOut: "2026-10-05T21:00:00.000Z",
+      totalMinutes: 495,
+      totalHoursFormatted: "8h 15m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-110",
+      userId: "usr-2",
+      userName: "John Doe",
+      userRole: "CASHIER",
+      date: "2026-10-06",
+      timeIn: "2026-10-06T08:05:00.000Z",
+      timeOut: "2026-10-06T17:10:00.000Z",
+      totalMinutes: 545,
+      totalHoursFormatted: "9h 05m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-111",
+      userId: "usr-3",
+      userName: "Maria Santos",
+      userRole: "CASHIER",
+      date: "2026-10-07",
+      timeIn: "2026-10-07T08:00:00.000Z",
+      timeOut: "2026-10-07T17:00:00.000Z",
+      totalMinutes: 540,
+      totalHoursFormatted: "9h 00m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    },
+    {
+      id: "att-112",
+      userId: "usr-2",
+      userName: "John Doe",
+      userRole: "CASHIER",
+      date: "2026-10-08",
+      timeIn: "2026-10-08T07:50:00.000Z",
+      timeOut: "2026-10-08T17:00:00.000Z",
+      totalMinutes: 550,
+      totalHoursFormatted: "9h 10m",
+      status: "COMPLETED",
+      notes: "Auto Time-In on login"
+    }
   ]
 };
 
@@ -478,6 +637,7 @@ const StorageManager = {
       if (!parsed.sales) parsed.sales = [];
       if (!parsed.inventoryLogs) parsed.inventoryLogs = [];
       if (!parsed.users || parsed.users.length === 0) parsed.users = [...SEED_DATA.users];
+      if (!parsed.attendance || parsed.attendance.length === 0) parsed.attendance = [...SEED_DATA.attendance];
 
       return parsed;
     } catch (e) {
@@ -527,3 +687,154 @@ const StorageManager = {
     }
   }
 };
+
+/**
+ * Attendance Manager Module
+ * Automatically handles Time-In upon staff login and Time-Out upon logout/session end.
+ */
+const AttendanceManager = {
+  getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  },
+
+  formatDuration(minutes) {
+    if (isNaN(minutes) || minutes < 0) return "--";
+    if (minutes === 0) return "< 1m";
+    const hrs = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hrs === 0) return `${mins}m`;
+    return `${hrs}h ${String(mins).padStart(2, '0')}m`;
+  },
+
+  recordTimeIn(user) {
+    if (!user || !user.id) return null;
+    const data = StorageManager.get();
+    if (!data.attendance) data.attendance = [];
+
+    const todayStr = this.getLocalDateString();
+    const nowIso = new Date().toISOString();
+
+    // Check if there is an existing CLOCKED_IN record for this user
+    let existing = data.attendance.find(a => a.userId === user.id && a.status === "CLOCKED_IN");
+
+    if (existing) {
+      // If the clock-in was from an earlier day, close it out first
+      if (existing.date !== todayStr) {
+        existing.status = "COMPLETED";
+        existing.timeOut = existing.timeOut || nowIso;
+        const diffMs = new Date(existing.timeOut) - new Date(existing.timeIn);
+        existing.totalMinutes = Math.max(1, Math.round(diffMs / 60000));
+        existing.totalHoursFormatted = this.formatDuration(existing.totalMinutes);
+      } else {
+        // Already clocked in today for this session
+        localStorage.setItem("POS_ACTIVE_ATTENDANCE_ID", existing.id);
+        StorageManager.save(data);
+        return existing;
+      }
+    }
+
+    // Create a new Time-In record
+    const newRecord = {
+      id: "att-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+      userId: user.id,
+      userName: user.fullName || user.username,
+      userRole: user.role || "STAFF",
+      date: todayStr,
+      timeIn: nowIso,
+      timeOut: null,
+      totalMinutes: 0,
+      totalHoursFormatted: "--",
+      status: "CLOCKED_IN",
+      notes: "Auto Time-In on login"
+    };
+
+    data.attendance.unshift(newRecord);
+    StorageManager.save(data);
+    localStorage.setItem("POS_ACTIVE_ATTENDANCE_ID", newRecord.id);
+    return newRecord;
+  },
+
+  recordTimeOut(user) {
+    if (!user || !user.id) return null;
+    const data = StorageManager.get();
+    if (!data.attendance) return null;
+
+    const activeId = localStorage.getItem("POS_ACTIVE_ATTENDANCE_ID");
+    const nowIso = new Date().toISOString();
+
+    // Find active record by ID or by userId with CLOCKED_IN status
+    let record = null;
+    if (activeId) {
+      record = data.attendance.find(a => a.id === activeId);
+    }
+    if (!record) {
+      record = data.attendance.find(a => a.userId === user.id && a.status === "CLOCKED_IN");
+    }
+
+    if (record) {
+      record.timeOut = nowIso;
+      record.status = "COMPLETED";
+      const diffMs = new Date(nowIso) - new Date(record.timeIn);
+      const diffMins = Math.max(1, Math.round(diffMs / 60000));
+      record.totalMinutes = diffMins;
+      record.totalHoursFormatted = this.formatDuration(diffMins);
+
+      StorageManager.save(data);
+      localStorage.removeItem("POS_ACTIVE_ATTENDANCE_ID");
+      return record;
+    }
+
+    return null;
+  },
+
+  getActiveRecord(userId) {
+    const data = StorageManager.get();
+    if (!data.attendance) return null;
+    return data.attendance.find(a => a.userId === userId && a.status === "CLOCKED_IN") || null;
+  },
+
+  getAllRecords() {
+    const data = StorageManager.get();
+    return data.attendance || [];
+  },
+
+  saveRecord(record) {
+    const data = StorageManager.get();
+    if (!data.attendance) data.attendance = [];
+
+    if (record.timeIn && record.timeOut) {
+      const diffMs = new Date(record.timeOut) - new Date(record.timeIn);
+      record.totalMinutes = Math.max(1, Math.round(diffMs / 60000));
+      record.totalHoursFormatted = this.formatDuration(record.totalMinutes);
+      record.status = "COMPLETED";
+    } else if (record.timeIn && !record.timeOut) {
+      record.status = "CLOCKED_IN";
+      record.totalMinutes = 0;
+      record.totalHoursFormatted = "--";
+    }
+
+    const idx = data.attendance.findIndex(a => a.id === record.id);
+    if (idx > -1) {
+      data.attendance[idx] = record;
+    } else {
+      if (!record.id) {
+        record.id = "att-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4);
+      }
+      data.attendance.unshift(record);
+    }
+    StorageManager.save(data);
+    return record;
+  },
+
+  deleteRecord(id) {
+    const data = StorageManager.get();
+    if (!data.attendance) return false;
+    data.attendance = data.attendance.filter(a => a.id !== id);
+    StorageManager.save(data);
+    return true;
+  }
+};
+

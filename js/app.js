@@ -84,6 +84,10 @@ const App = {
 
     this.currentUser = user;
     sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+    localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+    if (typeof AttendanceManager !== "undefined") {
+      AttendanceManager.recordTimeIn(user);
+    }
     Sound.playSuccess();
     this.showToast(`Welcome back, ${user.fullName}!`, "success");
 
@@ -135,8 +139,12 @@ const App = {
   },
 
   showLogin() {
+    if (this.currentUser && typeof AttendanceManager !== "undefined") {
+      AttendanceManager.recordTimeOut(this.currentUser);
+    }
     this.currentUser = null;
     sessionStorage.removeItem("POS_ACTIVE_USER");
+    localStorage.removeItem("POS_ACTIVE_USER");
     this.switchView("login-view");
     document.getElementById("login-password").value = "";
   },
@@ -169,6 +177,9 @@ const App = {
       "Sign Out of POS?",
       "Are you sure you want to end your current session and logout?",
       () => {
+        if (this.currentUser && typeof AttendanceManager !== "undefined") {
+          AttendanceManager.recordTimeOut(this.currentUser);
+        }
         this.showLogin();
         this.showToast("You have been signed out.", "info");
       }

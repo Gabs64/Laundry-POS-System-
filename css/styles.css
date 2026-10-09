@@ -4121,3 +4121,117 @@ img {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =========================================================
+   STAFF ATTENDANCE & TIMESHEET STYLES
+   ========================================================= */
+.month-navigator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface-elevated);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.month-navigator .btn-icon-only {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.month-navigator .btn-icon-only:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.current-month-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  min-width: 140px;
+  justify-content: center;
+}
+
+.current-month-badge i {
+  color: var(--primary);
+  width: 16px;
+  height: 16px;
+}
+
+/* Matrix Timesheet Grid */
+.matrix-table th,
+.matrix-table td {
+  vertical-align: middle;
+}
+
+.matrix-cell-pill {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-width: 34px;
+  text-align: center;
+}
+
+.matrix-cell-pill:hover {
+  transform: scale(1.15);
+  box-shadow: var(--shadow-md);
+  z-index: 3;
+  position: relative;
+}
+
+.btn-group {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.btn-group .btn {
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid var(--border-color);
+}
+
+.btn-group .btn:last-child {
+  border-right: none;
+}
+
+.btn-group .btn.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+@keyframes pulseLive {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.badge-success i[data-lucide="radio"] {
+  animation: pulseLive 1.5s infinite ease-in-out;
+}
+
