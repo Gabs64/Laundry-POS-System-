@@ -289,7 +289,15 @@ const App = {
      ========================================================= */
   showToast(message, type = "info", duration = 3000) {
     const container = document.getElementById("toast-container");
-    if (!container) return;
+    if (!container || !message) return;
+
+    // Prevent duplicate toasts
+    const existing = container.querySelectorAll(".toast span");
+    for (const el of existing) {
+      if (el.textContent.trim() === message.trim()) {
+        return;
+      }
+    }
 
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;

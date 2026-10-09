@@ -813,7 +813,16 @@
       },
       showToast(message, type = "info") {
         const container = document.getElementById("toast-container");
-        if (!container) return;
+        if (!container || !message) return;
+
+        // Prevent duplicate toasts
+        const existing = container.querySelectorAll(".toast span");
+        for (const el of existing) {
+          if (el.textContent.trim() === message.trim()) {
+            return;
+          }
+        }
+
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
         const iconMap = { success: "check-circle-2", danger: "alert-circle", warning: "alert-triangle", info: "info" };

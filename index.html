@@ -34,7 +34,7 @@
       </div>
 
       <!-- Login Form -->
-      <form id="login-form" class="login-form" onsubmit="event.preventDefault(); AppAuth.handleLogin(event); return false;">
+      <form id="login-form" class="login-form">
         <div class="form-group">
           <label for="login-username"><i data-lucide="user"></i> Username</label>
           <div class="input-with-icon">
@@ -69,6 +69,8 @@
   <script src="js/sound.js"></script>
   <script>
     const AppAuth = {
+      _isSubmitting: false,
+
       async init() {
         const data = StorageManager.get();
         const storeNameEl = document.getElementById("login-store-name");
@@ -120,11 +122,16 @@
           e.preventDefault();
           e.stopPropagation();
         }
+
+        if (this._isSubmitting) return;
+
         const user = document.getElementById("login-username").value.trim();
         const pass = document.getElementById("login-password").value;
         const btn = document.getElementById("btn-login");
 
         if (!user || !pass) return;
+
+        this._isSubmitting = true;
 
         if (btn) {
           btn.disabled = true;
@@ -155,6 +162,7 @@
           Sound.playError();
           this.showToast(err.message || "Authentication failed. Could not connect to database.", "danger");
         } finally {
+          this._isSubmitting = false;
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="log-in"></i> Sign In to POS`;
@@ -182,7 +190,16 @@
 
       showToast(message, type = "info") {
         const container = document.getElementById("toast-container");
-        if (!container) return;
+        if (!container || !message) return;
+
+        // Prevent duplicate toasts
+        const existing = container.querySelectorAll(".toast span");
+        for (const el of existing) {
+          if (el.textContent.trim() === message.trim()) {
+            return;
+          }
+        }
+
         const toast = document.createElement("div");
         toast.className = `toast toast-${type}`;
         const icons = { success: "check-circle", danger: "alert-circle", info: "info" };
