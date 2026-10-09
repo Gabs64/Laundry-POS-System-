@@ -760,17 +760,19 @@ const AdminPanel = {
       const count = products.filter(p => p.categoryId === cat.id).length;
       html += `
         <div class="category-card">
-          <div class="category-icon-box">
-            <i data-lucide="${cat.icon || 'shirt'}"></i>
-          </div>
-          <div class="category-info">
-            <h4>${cat.name}</h4>
-            <p>${cat.description || 'No description'}</p>
-            <span class="category-count">${count} items</span>
+          <div class="category-card-main">
+            <div class="category-icon-box">
+              <i data-lucide="${cat.icon || 'shirt'}"></i>
+            </div>
+            <div class="category-info">
+              <h4>${cat.name}</h4>
+              <p>${cat.description || 'No description'}</p>
+              <span class="category-count">${count} items</span>
+            </div>
           </div>
           <div class="category-actions">
-            <button class="btn btn-secondary btn-sm mr-1" onclick="AdminPanel.editCategory('${cat.id}')"><i data-lucide="edit-2"></i></button>
-            <button class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteCategory('${cat.id}')"><i data-lucide="trash-2"></i></button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editCategory('${cat.id}')" title="Edit Category"><i data-lucide="edit-2"></i></button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="AdminPanel.confirmDeleteCategory('${cat.id}')" title="Delete Category"><i data-lucide="trash-2"></i></button>
           </div>
         </div>
       `;

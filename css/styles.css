@@ -2420,8 +2420,8 @@ img {
 /* CATEGORY CARDS GRID */
 .category-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
 }
 
 .category-card {
@@ -2432,39 +2432,108 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
+.category-card:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.category-card-main,
 .cat-card-left {
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
+  flex: 1;
 }
 
+.category-icon-box,
 .cat-icon-box {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border-radius: var(--radius-md);
-  background: var(--primary-light);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
   color: #38bdf8;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
+.category-icon-box i,
+.cat-icon-box i {
+  width: 22px;
+  height: 22px;
+}
+
+.category-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.category-info h4,
 .cat-title {
   font-weight: 700;
   font-size: 1.05rem;
+  color: var(--text-primary);
+  margin: 0 0 0.2rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.cat-count {
-  font-size: 0.8rem;
+.category-info p {
+  font-size: 0.82rem;
   color: var(--text-muted);
+  margin: 0 0 0.35rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+.category-count,
+.cat-count {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(56, 189, 248, 0.1);
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.category-actions,
 .cat-actions {
   display: flex;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.category-actions .btn,
+.cat-actions .btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+
+.category-actions .btn i,
+.cat-actions .btn i {
+  width: 16px;
+  height: 16px;
 }
 
 /* WARNING ALERT BANNER */
