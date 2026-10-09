@@ -377,15 +377,39 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 403, { success: false, error: 'Account is disabled. Contact your administrator.' });
         }
 
+        // STRICT SINGLE DEVICE ENFORCEMENT FOR ALL USERS (STAFF & OWNER)
+        const now = Date.now();
+        const HEARTBEAT_TIMEOUT_MS = 35000; // 35 seconds timeout for active heartbeats
+        const isCurrentlyOnline = user.activeSessionId && user.lastHeartbeat && (now - user.lastHeartbeat < HEARTBEAT_TIMEOUT_MS);
+
+        if (isCurrentlyOnline) {
+          return sendJson(res, 409, {
+            success: false,
+            error: `This account is currently active and logged in on another device. Strictly only 1 device is allowed at a time for all accounts. Please log out from the other device first.`
+          });
+        }
+
+        // Issue new unique session ID
+        const sessionId = "sess-" + Date.now() + "-" + Math.random().toString(36).substr(2, 8);
+        user.activeSessionId = sessionId;
+        user.lastHeartbeat = now;
+        user.isOnline = true;
+        user.lastLoginAt = new Date().toISOString();
+
+        saveServerData(dbData);
+
         return sendJson(res, 200, {
           success: true,
+          sessionId: sessionId,
           user: {
             id: user.id,
             fullName: user.fullName,
             username: user.username,
             role: user.role,
             isMaster: !!user.isMaster,
-            status: user.status
+            status: user.status,
+            activeSessionId: sessionId,
+            isOnline: true
           }
         });
       } catch (err) {
@@ -393,17 +417,108 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 8. POST /api/auth/verify
+    // 8. POST /api/auth/heartbeat
+    if (pathname === '/api/auth/heartbeat' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const { userId, sessionId } = JSON.parse(raw);
+        const dbData = loadServerData();
+        const users = dbData.users || [];
+        const user = users.find(u => u.id === userId);
+
+        if (!user || user.status === 'disabled') {
+          return sendJson(res, 401, { success: false, active: false, reason: 'Account disabled or not found.' });
+        }
+
+        // Check if session is still the authorized active session
+        if (user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
+          return sendJson(res, 200, {
+            success: true,
+            active: false,
+            reason: 'Your session has ended because another device session became active or it was disconnected.'
+          });
+        }
+
+        // Refresh heartbeat
+        user.activeSessionId = sessionId || user.activeSessionId;
+        user.lastHeartbeat = Date.now();
+        user.isOnline = true;
+        saveServerData(dbData);
+
+        return sendJson(res, 200, {
+          success: true,
+          active: true
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, active: false, error: err.message });
+      }
+    }
+
+    // 9. POST /api/auth/logout
+    if (pathname === '/api/auth/logout' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const { userId, sessionId } = JSON.parse(raw || '{}');
+        const dbData = loadServerData();
+        const users = dbData.users || [];
+        const user = users.find(u => u.id === userId);
+
+        if (user && (!sessionId || user.activeSessionId === sessionId)) {
+          user.activeSessionId = null;
+          user.lastHeartbeat = null;
+          user.isOnline = false;
+          saveServerData(dbData);
+        }
+
+        return sendJson(res, 200, { success: true });
+      } catch (err) {
+        return sendJson(res, 200, { success: true });
+      }
+    }
+
+    // 10. POST /api/auth/force-logout (Admin force disconnect)
+    if (pathname === '/api/auth/force-logout' && method === 'POST') {
+      try {
+        const raw = await readBody(req);
+        const { targetUserId } = JSON.parse(raw);
+        const dbData = loadServerData();
+        const users = dbData.users || [];
+        const user = users.find(u => u.id === targetUserId);
+
+        if (!user) {
+          return sendJson(res, 404, { success: false, error: 'User account not found.' });
+        }
+
+        user.activeSessionId = null;
+        user.lastHeartbeat = null;
+        user.isOnline = false;
+        saveServerData(dbData);
+
+        return sendJson(res, 200, {
+          success: true,
+          message: `Device session for ${user.fullName} has been freed.`,
+          users: dbData.users
+        });
+      } catch (err) {
+        return sendJson(res, 400, { success: false, error: err.message });
+      }
+    }
+
+    // 11. POST /api/auth/verify
     if (pathname === '/api/auth/verify' && method === 'POST') {
       try {
         const raw = await readBody(req);
-        const { userId } = JSON.parse(raw);
+        const { userId, sessionId } = JSON.parse(raw);
         const dbData = loadServerData();
         const users = dbData.users || [];
         const user = users.find(u => u.id === userId);
 
         if (!user || user.status === 'disabled') {
           return sendJson(res, 401, { success: false, valid: false });
+        }
+
+        if (user.activeSessionId && sessionId && user.activeSessionId !== sessionId) {
+          return sendJson(res, 200, { success: true, valid: false, reason: 'Session expired or active on another device.' });
         }
 
         return sendJson(res, 200, {
@@ -415,7 +530,9 @@ const server = http.createServer(async (req, res) => {
             username: user.username,
             role: user.role,
             isMaster: !!user.isMaster,
-            status: user.status
+            status: user.status,
+            activeSessionId: user.activeSessionId,
+            isOnline: user.isOnline
           }
         });
       } catch (err) {
@@ -423,7 +540,7 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 9. POST /api/reset
+    // 12. POST /api/reset
     if (pathname === '/api/reset' && method === 'POST') {
       const cleanCopy = JSON.parse(JSON.stringify(CLEAN_SEED_DATA));
       saveServerData(cleanCopy);
@@ -434,7 +551,7 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 10. GET /api/health
+    // 13. GET /api/health
     if (pathname === '/api/health') {
       const dbData = loadServerData();
       return sendJson(res, 200, {

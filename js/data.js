@@ -233,6 +233,52 @@ const StorageManager = {
     return true;
   },
 
+  async sendHeartbeat(userId, sessionId) {
+    if (!userId || !sessionId) return { success: false };
+    try {
+      const res = await fetch(getApiUrl("/api/auth/heartbeat"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, sessionId })
+      });
+      return await res.json().catch(() => ({ success: false }));
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
+  async logoutSession(userId, sessionId) {
+    if (!userId) return { success: true };
+    try {
+      const res = await fetch(getApiUrl("/api/auth/logout"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, sessionId })
+      });
+      return await res.json().catch(() => ({ success: true }));
+    } catch (e) {
+      return { success: true };
+    }
+  },
+
+  async forceDisconnectUser(targetUserId) {
+    const res = await fetch(getApiUrl("/api/auth/force-logout"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetUserId })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.success) {
+      throw new Error(result.error || "Failed to disconnect user session.");
+    }
+    const currentData = this.get();
+    if (result.users) {
+      currentData.users = result.users;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+    }
+    return result;
+  },
+
   exportJSON() {
     const data = this.get();
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));

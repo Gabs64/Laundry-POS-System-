@@ -1369,6 +1369,11 @@ const AdminPanel = {
       const initials = u.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
       const isSelf = u.id === App.getCurrentUser()?.id;
       const isMaster = u.isMaster || u.id === "usr-admin";
+      const isOnlineNow = u.isOnline && u.lastHeartbeat && (Date.now() - u.lastHeartbeat < 45000);
+
+      const deviceStatusBadge = isOnlineNow
+        ? `<span class="badge badge-success" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(34, 197, 94, 0.15); border:1px solid rgba(34, 197, 94, 0.3); color:#22c55e;"><i data-lucide="radio" style="width:11px; height:11px;"></i> Active (1 Device)</span>`
+        : `<span class="badge badge-secondary" style="font-size:0.75rem; padding:2px 8px; border-radius:9999px; background:rgba(148, 163, 184, 0.12); color:var(--text-muted);">Offline</span>`;
 
       html += `
         <div class="user-account-card ${isMaster ? 'master-admin-card' : ''}">
@@ -1388,14 +1393,19 @@ const AdminPanel = {
               <span class="role-badge ${u.role.toLowerCase()}">${u.role}</span>
             </div>
             <div class="user-meta-chip">
-              <span class="label">Status:</span>
-              <span class="badge-pill ${u.status === 'active' ? 'badge-active' : 'badge-disabled'}">${u.status.toUpperCase()}</span>
+              <span class="label">Device:</span>
+              ${deviceStatusBadge}
             </div>
           </div>
           <div class="user-card-footer">
             <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editUser('${u.id}')">
               <i data-lucide="edit-3"></i> Edit
             </button>
+            ${isOnlineNow && !isSelf ? `
+              <button type="button" class="btn btn-warning btn-sm" onclick="AdminPanel.forceDisconnectUser('${u.id}', '${u.fullName.replace(/'/g, "\\'")}')" title="Disconnect device to free login">
+                <i data-lucide="log-out"></i> Free Device
+              </button>
+            ` : ''}
             ${isMaster 
               ? `<span class="locked-badge"><i data-lucide="shield-check" style="width:13px; height:13px; color:var(--warning);"></i> Protected Root</span>` 
               : (!isSelf 
@@ -1410,6 +1420,25 @@ const AdminPanel = {
 
     grid.innerHTML = html;
     if (window.lucide) lucide.createIcons();
+  },
+
+  forceDisconnectUser(userId, userName) {
+    App.showConfirmModal(
+      `Free Device for ${userName}?`,
+      "This will immediately disconnect the active device session for this account so they can log in from another device.",
+      async () => {
+        try {
+          await StorageManager.forceDisconnectUser(userId);
+          this.renderUsers();
+          Sound.playSuccess();
+          App.showToast(`Device session freed for ${userName}.`, "success");
+        } catch (err) {
+          console.error("Force disconnect error:", err);
+          Sound.playError();
+          App.showToast(`Error: ${err.message || 'Failed to disconnect session.'}`, "danger");
+        }
+      }
+    );
   },
 
   openUserModal(isEdit = false, isMaster = false) {

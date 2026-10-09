@@ -80,6 +80,10 @@ const App = {
           this.currentUser = result.user;
           sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(result.user));
           localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(result.user));
+          if (result.sessionId) {
+            sessionStorage.setItem("POS_ACTIVE_SESSION_ID", result.sessionId);
+            localStorage.setItem("POS_ACTIVE_SESSION_ID", result.sessionId);
+          }
           if (typeof AttendanceManager !== "undefined") {
             AttendanceManager.recordTimeIn(result.user);
           }

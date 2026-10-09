@@ -151,7 +151,7 @@
           if (res.ok) {
             const result = await res.json();
             if (result.success && result.user) {
-              this.onLoginSuccess(result.user);
+              this.onLoginSuccess(result.user, result.sessionId);
               return;
             }
           }
@@ -171,9 +171,13 @@
         }
       },
 
-      onLoginSuccess(user) {
+      onLoginSuccess(user, sessionId) {
         sessionStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
         localStorage.setItem("POS_ACTIVE_USER", JSON.stringify(user));
+        if (sessionId) {
+          sessionStorage.setItem("POS_ACTIVE_SESSION_ID", sessionId);
+          localStorage.setItem("POS_ACTIVE_SESSION_ID", sessionId);
+        }
 
         if (typeof AttendanceManager !== "undefined") {
           AttendanceManager.recordTimeIn(user);

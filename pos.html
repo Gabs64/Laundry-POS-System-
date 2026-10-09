@@ -631,8 +631,10 @@
   <script>
     const PosSite = {
       currentUser: null,
+      currentSessionId: null,
       _isLoggingOut: false,
       _hasShownTimeoutModal: false,
+      _heartbeatTimer: null,
 
       init() {
         Sound.init();
@@ -640,13 +642,15 @@
         this.startLiveClock();
         this.checkAuth();
         this.setupShortcuts();
+        this.startHeartbeat();
+        this.setupUnloadBeacon();
 
         // Listen for database sync events to instantly detect admin actions (e.g. Time-Out)
         window.addEventListener("pos-data-synced", (e) => {
           this.validateSessionState(e.detail);
         });
 
-        // Periodic session heartbeat (every 3 seconds)
+        // Periodic session validation (every 3 seconds)
         setInterval(() => {
           this.validateSessionState();
         }, 3000);
@@ -663,6 +667,8 @@
           } catch (e) {}
         }
 
+        this.currentSessionId = sessionStorage.getItem("POS_ACTIVE_SESSION_ID") || localStorage.getItem("POS_ACTIVE_SESSION_ID");
+
         // If no active authenticated session, redirect to login page
         if (!this.currentUser || !this.currentUser.id) {
           window.location.href = "index.html";
@@ -676,6 +682,34 @@
         this.updateHeader();
       },
 
+      startHeartbeat() {
+        if (this._heartbeatTimer) clearInterval(this._heartbeatTimer);
+        const send = async () => {
+          if (!this.currentUser || !this.currentUser.id || this._isLoggingOut) return;
+          try {
+            const res = await StorageManager.sendHeartbeat(this.currentUser.id, this.currentSessionId);
+            if (res && res.active === false) {
+              this.forceLogout(res.reason || "This session has ended or is active on another device.");
+            }
+          } catch (e) {}
+        };
+        send();
+        this._heartbeatTimer = setInterval(send, 10000);
+      },
+
+      setupUnloadBeacon() {
+        window.addEventListener("beforeunload", () => {
+          if (this.currentUser && this.currentUser.id && this.currentSessionId && !this._isLoggingOut) {
+            const apiUrl = (typeof getApiUrl === "function") ? getApiUrl("/api/auth/logout") : "/api/auth/logout";
+            const payload = JSON.stringify({ userId: this.currentUser.id, sessionId: this.currentSessionId });
+            const blob = new Blob([payload], { type: "application/json" });
+            if (navigator.sendBeacon) {
+              navigator.sendBeacon(apiUrl, blob);
+            }
+          }
+        });
+      },
+
       validateSessionState(freshData) {
         if (!this.currentUser || this.currentUser.role === "ADMIN" || this._isLoggingOut) return;
         const data = freshData || StorageManager.get();
@@ -687,7 +721,13 @@
           return;
         }
 
-        // 2. Check if THIS device's active attendance session was specifically timed out by Admin
+        // 2. Check if another session took over or account was disconnected
+        if (dbUser && dbUser.activeSessionId && this.currentSessionId && dbUser.activeSessionId !== this.currentSessionId) {
+          this.forceLogout("Another device or session has logged into this account. Strictly 1 device is allowed.");
+          return;
+        }
+
+        // 3. Check if THIS device's active attendance session was specifically timed out by Admin
         const activeAttId = localStorage.getItem("POS_ACTIVE_ATTENDANCE_ID");
         if (activeAttId && Array.isArray(data.attendance)) {
           const matchedPunch = data.attendance.find(a => a.id === activeAttId);
@@ -736,19 +776,30 @@
         }
       },
 
-      proceedToLoginAfterTimeout() {
+      async proceedToLoginAfterTimeout() {
+        if (this.currentUser && this.currentSessionId) {
+          await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
+        }
         localStorage.removeItem("POS_ACTIVE_USER");
         sessionStorage.removeItem("POS_ACTIVE_USER");
+        localStorage.removeItem("POS_ACTIVE_SESSION_ID");
+        sessionStorage.removeItem("POS_ACTIVE_SESSION_ID");
         localStorage.removeItem("POS_ACTIVE_ATTENDANCE_ID");
         window.location.replace("index.html");
       },
 
-      forceLogout(reason = "You have been logged out by the Administrator.") {
+      async forceLogout(reason = "You have been logged out.") {
         if (this._isLoggingOut) return;
         this._isLoggingOut = true;
 
+        if (this.currentUser && this.currentSessionId) {
+          await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
+        }
+
         localStorage.removeItem("POS_ACTIVE_USER");
         sessionStorage.removeItem("POS_ACTIVE_USER");
+        localStorage.removeItem("POS_ACTIVE_SESSION_ID");
+        sessionStorage.removeItem("POS_ACTIVE_SESSION_ID");
         localStorage.removeItem("POS_ACTIVE_ATTENDANCE_ID");
         sessionStorage.setItem("LOGOUT_REASON", reason);
 
@@ -846,11 +897,19 @@
         App.showConfirmModal(
           "Logout from POS?",
           "Are you sure you want to end your cashier session? Your attendance time-out will be recorded.",
-          () => {
+          async () => {
+            this._isLoggingOut = true;
+            if (this.currentUser && this.currentSessionId) {
+              await StorageManager.logoutSession(this.currentUser.id, this.currentSessionId);
+            }
             if (this.currentUser && typeof AttendanceManager !== "undefined") {
               AttendanceManager.recordTimeOut(this.currentUser);
             }
             localStorage.removeItem("POS_ACTIVE_USER");
+            sessionStorage.removeItem("POS_ACTIVE_USER");
+            localStorage.removeItem("POS_ACTIVE_SESSION_ID");
+            sessionStorage.removeItem("POS_ACTIVE_SESSION_ID");
+            localStorage.removeItem("POS_ACTIVE_ATTENDANCE_ID");
             window.location.href = "index.html";
           }
         );
