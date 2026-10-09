@@ -1323,12 +1323,14 @@
       currentSessionId: null,
       _isLoggingOut: false,
       _heartbeatTimer: null,
+      tabId: null,
 
       init() {
         Sound.init();
         this.initTheme();
         this.startLiveClock();
         this.checkAuth();
+        this.setupTabLock();
         this.startHeartbeat();
         this.setupUnloadBeacon();
 
@@ -1344,6 +1346,25 @@
 
         AdminPanel.init();
         if (window.lucide) lucide.createIcons();
+      },
+
+      setupTabLock() {
+        this.tabId = "tab-" + Date.now() + "-" + Math.random().toString(36).substr(2, 6);
+        sessionStorage.setItem("POS_ACTIVE_TAB_ID", this.tabId);
+
+        if (typeof BroadcastChannel !== "undefined") {
+          try {
+            this.tabChannel = new BroadcastChannel("pos_account_tab_lock");
+            this.tabChannel.onmessage = (e) => {
+              if (e.data && e.data.userId === this.currentUser?.id && e.data.tabId !== this.tabId) {
+                if (e.data.type === "CLAIM_SESSION") {
+                  this.forceLogout("This Admin account was opened in another window or device. Strictly only 1 active session is allowed.");
+                }
+              }
+            };
+            this.tabChannel.postMessage({ type: "CLAIM_SESSION", userId: this.currentUser?.id, tabId: this.tabId });
+          } catch (e) {}
+        }
       },
 
       checkAuth() {
@@ -1377,7 +1398,7 @@
           } catch (e) {}
         };
         send();
-        this._heartbeatTimer = setInterval(send, 10000);
+        this._heartbeatTimer = setInterval(send, 4000);
       },
 
       setupUnloadBeacon() {

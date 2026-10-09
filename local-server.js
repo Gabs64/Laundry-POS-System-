@@ -113,6 +113,19 @@ function saveServerData(data) {
       }
     }
 
+    // Preserve active session tokens & online status from previous cachedData so POST /api/data never wipes them
+    if (cachedData && Array.isArray(cachedData.users) && Array.isArray(data.users)) {
+      data.users.forEach(u => {
+        const prev = cachedData.users.find(p => p.id === u.id);
+        if (prev) {
+          if (prev.activeSessionId && !u.activeSessionId) u.activeSessionId = prev.activeSessionId;
+          if (prev.lastHeartbeat && (!u.lastHeartbeat || prev.lastHeartbeat > u.lastHeartbeat)) u.lastHeartbeat = prev.lastHeartbeat;
+          if (prev.isOnline !== undefined && u.isOnline === undefined) u.isOnline = prev.isOnline;
+          if (prev.lastLoginAt && !u.lastLoginAt) u.lastLoginAt = prev.lastLoginAt;
+        }
+      });
+    }
+
     cachedData = data;
     lastUpdatedTimestamp = Date.now();
     const tempFile = DB_FILE + '.tmp.' + Date.now();
