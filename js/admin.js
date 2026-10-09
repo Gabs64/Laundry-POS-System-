@@ -1395,7 +1395,21 @@ const AdminPanel = {
           autoDisableNotice = `<div style="font-size:0.72rem; color:var(--warning, #f59e0b); display:flex; align-items:center; gap:4px; margin-top:3px;" title="${u.autoDisableReason}"><i data-lucide="alert-circle" style="width:11px; height:11px; flex-shrink:0;"></i> <span>${u.autoDisableReason}</span></div>`;
         } else if (!isDisabled && u.autoDisableEnabled) {
           if (u.autoDisableType === "daily") {
-            autoDisableNotice = `<div style="font-size:0.72rem; color:#38bdf8; display:flex; align-items:center; gap:4px; margin-top:3px;"><i data-lucide="clock" style="width:11px; height:11px; flex-shrink:0;"></i> <span>Auto-off: Daily at ${u.autoDisableDailyTime || '22:00'}</span></div>`;
+            const formatTime12 = (tStr) => {
+              try {
+                const parts = (tStr || "00:00").split(":").map(Number);
+                const h = parts[0];
+                const m = parts[1] || 0;
+                const ampm = h >= 12 ? "PM" : "AM";
+                const h12 = h % 12 || 12;
+                return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+              } catch (e) {
+                return tStr;
+              }
+            };
+            const inFormatted = formatTime12(u.autoDisableDailyIn || "08:00");
+            const outFormatted = formatTime12(u.autoDisableDailyOut || u.autoDisableDailyTime || "17:00");
+            autoDisableNotice = `<div style="font-size:0.72rem; color:#38bdf8; display:flex; align-items:center; gap:4px; margin-top:3px;"><i data-lucide="clock" style="width:11px; height:11px; flex-shrink:0;"></i> <span>Daily Shift: ${inFormatted} - ${outFormatted}</span></div>`;
           } else if (u.autoDisableAt) {
             const d = new Date(u.autoDisableAt);
             const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -1611,7 +1625,8 @@ const AdminPanel = {
     const enableCheckbox = document.getElementById("user-autodisable-enable");
     const typeSelect = document.getElementById("user-autodisable-type");
     const dtInput = document.getElementById("user-autodisable-datetime");
-    const dailyInput = document.getElementById("user-autodisable-daily");
+    const dailyInInput = document.getElementById("user-autodisable-daily-in");
+    const dailyOutInput = document.getElementById("user-autodisable-daily-out");
     const notice = document.getElementById("user-autodisable-info");
 
     const isAutoDisableActive = !!u.autoDisableEnabled;
@@ -1641,8 +1656,11 @@ const AdminPanel = {
       }
     }
 
-    if (dailyInput) {
-      dailyInput.value = u.autoDisableDailyTime || "22:00";
+    if (dailyInInput) {
+      dailyInInput.value = u.autoDisableDailyIn || "08:00";
+    }
+    if (dailyOutInput) {
+      dailyOutInput.value = u.autoDisableDailyOut || u.autoDisableDailyTime || "17:00";
     }
 
     if (notice) {
@@ -1675,7 +1693,8 @@ const AdminPanel = {
       const autoDisableEnabled = !isMaster && (document.getElementById("user-autodisable-enable")?.checked || false);
       const autoDisableType = document.getElementById("user-autodisable-type")?.value || "datetime";
       const autoDisableAt = document.getElementById("user-autodisable-datetime")?.value || null;
-      const autoDisableDailyTime = document.getElementById("user-autodisable-daily")?.value || "22:00";
+      const autoDisableDailyIn = document.getElementById("user-autodisable-daily-in")?.value || "08:00";
+      const autoDisableDailyOut = document.getElementById("user-autodisable-daily-out")?.value || "17:00";
 
       const payload = {
         id: userId || "usr-" + Date.now(),
@@ -1687,7 +1706,9 @@ const AdminPanel = {
         autoDisableEnabled: autoDisableEnabled,
         autoDisableType: autoDisableType,
         autoDisableAt: autoDisableAt,
-        autoDisableDailyTime: autoDisableDailyTime,
+        autoDisableDailyIn: autoDisableDailyIn,
+        autoDisableDailyOut: autoDisableDailyOut,
+        autoDisableDailyTime: autoDisableDailyOut,
         createdAt: new Date().toISOString()
       };
 

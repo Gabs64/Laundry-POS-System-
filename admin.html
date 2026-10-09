@@ -1203,14 +1203,24 @@
                 </div>
               </div>
 
-              <!-- Daily Time Picker -->
+              <!-- Daily Shift Time Pickers (In Time & Out Time) -->
               <div id="user-autodisable-daily-group" class="form-group" style="display: none;">
-                <label for="user-autodisable-daily" style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">
-                  Daily Cut-off Time
-                </label>
-                <input type="time" id="user-autodisable-daily" value="22:00">
-                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">
-                  Staff account will automatically disable every day at this specified time.
+                <div class="form-row">
+                  <div class="form-group col-6">
+                    <label for="user-autodisable-daily-in" style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">
+                      Daily In Time (Shift Start)
+                    </label>
+                    <input type="time" id="user-autodisable-daily-in" value="08:00">
+                  </div>
+                  <div class="form-group col-6">
+                    <label for="user-autodisable-daily-out" style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">
+                      Daily Out Time (Cut-off)
+                    </label>
+                    <input type="time" id="user-autodisable-daily-out" value="17:00">
+                  </div>
+                </div>
+                <small class="text-muted" style="font-size: 0.75rem; margin-top: 4px; display: block;">
+                  Staff account will automatically enable during shift hours and disable outside this daily window.
                 </small>
               </div>
 

@@ -71,54 +71,80 @@ function checkAutoDisableUsers(dbData) {
   let modified = false;
   const now = new Date();
   const currentIso = now.toISOString();
+  const currentMinutesOfDay = now.getHours() * 60 + now.getMinutes();
+
+  const formatTime12 = (tStr) => {
+    try {
+      const parts = (tStr || '00:00').split(':').map(Number);
+      const h = parts[0];
+      const m = parts[1] || 0;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    } catch (e) {
+      return tStr;
+    }
+  };
 
   dbData.users.forEach(u => {
     // Admin & Master Admin cannot be auto-disabled
     if (u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN') return;
-    if (u.status === 'disabled') return;
 
     if (u.autoDisableEnabled) {
-      let shouldDisable = false;
-      let reason = '';
-
       if (u.autoDisableType === 'datetime' || (!u.autoDisableType && u.autoDisableAt)) {
+        if (u.status === 'disabled') return;
         if (u.autoDisableAt) {
           const disableTime = new Date(u.autoDisableAt).getTime();
           if (!isNaN(disableTime) && Date.now() >= disableTime) {
-            shouldDisable = true;
-            reason = `Scheduled auto-disable time reached (${new Date(u.autoDisableAt).toLocaleString()})`;
+            u.status = 'disabled';
+            u.activeSessionId = null;
+            u.lastHeartbeat = null;
+            u.isOnline = false;
+            u.autoDisabledAt = currentIso;
+            u.autoDisableReason = `Scheduled auto-disable time reached (${new Date(u.autoDisableAt).toLocaleString()})`;
+            modified = true;
           }
         }
       } else if (u.autoDisableType === 'daily') {
-        if (u.autoDisableDailyTime) {
-          const parts = u.autoDisableDailyTime.split(':').map(Number);
-          const dHour = parts[0];
-          const dMin = parts[1] || 0;
-          const targetToday = new Date(now);
-          targetToday.setHours(dHour, dMin, 0, 0);
+        const dailyInStr = u.autoDisableDailyIn || '08:00';
+        const dailyOutStr = u.autoDisableDailyOut || u.autoDisableDailyTime || '17:00';
 
-          if (now.getTime() >= targetToday.getTime()) {
-            const todayDateStr = now.toISOString().split('T')[0];
-            const lastAutoDisabled = u.lastAutoDisabledDate;
-            const lastEnabledAt = u.lastEnabledAt ? new Date(u.lastEnabledAt).getTime() : 0;
+        const inParts = dailyInStr.split(':').map(Number);
+        const outParts = dailyOutStr.split(':').map(Number);
 
-            if (lastEnabledAt < targetToday.getTime() && lastAutoDisabled !== todayDateStr) {
-              shouldDisable = true;
-              u.lastAutoDisabledDate = todayDateStr;
-              reason = `Daily auto-disable cut-off reached (${u.autoDisableDailyTime})`;
-            }
+        const inMinutes = (inParts[0] || 0) * 60 + (inParts[1] || 0);
+        const outMinutes = (outParts[0] || 0) * 60 + (outParts[1] || 0);
+
+        let isWithinShift = false;
+        if (inMinutes <= outMinutes) {
+          isWithinShift = currentMinutesOfDay >= inMinutes && currentMinutesOfDay < outMinutes;
+        } else {
+          // Overnight shift (e.g. 22:00 to 06:00)
+          isWithinShift = currentMinutesOfDay >= inMinutes || currentMinutesOfDay < outMinutes;
+        }
+
+        const shiftLabel = `${formatTime12(dailyInStr)} - ${formatTime12(dailyOutStr)}`;
+
+        if (isWithinShift) {
+          // If account was disabled by daily schedule, automatically re-enable when shift window opens!
+          if (u.status === 'disabled' && (!u.autoDisableReason || u.autoDisableReason.toLowerCase().includes('daily'))) {
+            u.status = 'active';
+            u.autoDisabledAt = null;
+            u.autoDisableReason = null;
+            modified = true;
+          }
+        } else {
+          // Outside shift window -> auto-disable
+          if (u.status !== 'disabled') {
+            u.status = 'disabled';
+            u.activeSessionId = null;
+            u.lastHeartbeat = null;
+            u.isOnline = false;
+            u.autoDisabledAt = currentIso;
+            u.autoDisableReason = `Outside daily shift window (${shiftLabel})`;
+            modified = true;
           }
         }
-      }
-
-      if (shouldDisable) {
-        u.status = 'disabled';
-        u.activeSessionId = null;
-        u.lastHeartbeat = null;
-        u.isOnline = false;
-        u.autoDisabledAt = currentIso;
-        u.autoDisableReason = reason;
-        modified = true;
       }
     }
   });
@@ -192,7 +218,9 @@ function saveServerData(data) {
           if (u.autoDisableEnabled === undefined) u.autoDisableEnabled = !!prev.autoDisableEnabled;
           if (u.autoDisableType === undefined) u.autoDisableType = prev.autoDisableType || 'datetime';
           if (u.autoDisableAt === undefined) u.autoDisableAt = prev.autoDisableAt || null;
-          if (u.autoDisableDailyTime === undefined) u.autoDisableDailyTime = prev.autoDisableDailyTime || '22:00';
+          if (u.autoDisableDailyIn === undefined) u.autoDisableDailyIn = prev.autoDisableDailyIn || '08:00';
+          if (u.autoDisableDailyOut === undefined) u.autoDisableDailyOut = prev.autoDisableDailyOut || prev.autoDisableDailyTime || '17:00';
+          if (u.autoDisableDailyTime === undefined) u.autoDisableDailyTime = prev.autoDisableDailyOut || prev.autoDisableDailyTime || '17:00';
           if (u.autoDisabledAt === undefined) u.autoDisabledAt = prev.autoDisabledAt || null;
           if (u.autoDisableReason === undefined) u.autoDisableReason = prev.autoDisableReason || null;
           if (u.lastAutoDisabledDate === undefined) u.lastAutoDisabledDate = prev.lastAutoDisabledDate || null;
@@ -360,7 +388,9 @@ const server = http.createServer(async (req, res) => {
           autoDisableEnabled: !!newUser.autoDisableEnabled,
           autoDisableType: newUser.autoDisableType || "datetime",
           autoDisableAt: newUser.autoDisableAt || null,
-          autoDisableDailyTime: newUser.autoDisableDailyTime || "22:00",
+          autoDisableDailyIn: newUser.autoDisableDailyIn || "08:00",
+          autoDisableDailyOut: newUser.autoDisableDailyOut || newUser.autoDisableDailyTime || "17:00",
+          autoDisableDailyTime: newUser.autoDisableDailyOut || newUser.autoDisableDailyTime || "17:00",
           autoDisabledAt: newUser.autoDisabledAt || null,
           autoDisableReason: newUser.autoDisableReason || null,
           createdAt: new Date().toISOString()
@@ -432,8 +462,12 @@ const server = http.createServer(async (req, res) => {
           if (updates.autoDisableAt !== undefined) {
             existing.autoDisableAt = updates.autoDisableAt;
           }
-          if (updates.autoDisableDailyTime !== undefined) {
-            existing.autoDisableDailyTime = updates.autoDisableDailyTime;
+          if (updates.autoDisableDailyIn !== undefined) {
+            existing.autoDisableDailyIn = updates.autoDisableDailyIn;
+          }
+          if (updates.autoDisableDailyOut !== undefined || updates.autoDisableDailyTime !== undefined) {
+            existing.autoDisableDailyOut = updates.autoDisableDailyOut || updates.autoDisableDailyTime;
+            existing.autoDisableDailyTime = existing.autoDisableDailyOut;
           }
         }
 
