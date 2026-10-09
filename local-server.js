@@ -101,7 +101,11 @@ function saveServerData(data) {
   try {
     // Preserve root Master Admin account from being deleted
     if (!Array.isArray(data.users) || data.users.length === 0) {
-      data.users = [...CLEAN_SEED_DATA.users];
+      if (cachedData && Array.isArray(cachedData.users) && cachedData.users.length > 0) {
+        data.users = cachedData.users;
+      } else {
+        data.users = [...CLEAN_SEED_DATA.users];
+      }
     } else {
       const hasAdmin = data.users.some(u => u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN');
       if (!hasAdmin) {
@@ -146,7 +150,6 @@ function readBody(req) {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
-      // Guard against payloads larger than 50MB
       if (body.length > 50 * 1024 * 1024) {
         req.connection.destroy();
         reject(new Error('Payload too large'));
@@ -163,7 +166,7 @@ const server = http.createServer(async (req, res) => {
 
   // Set CORS headers for seamless multi-device access
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Client-Version');
 
   if (req.method === 'OPTIONS') {
@@ -185,7 +188,7 @@ const server = http.createServer(async (req, res) => {
     }));
   }
 
-  // 2. POST /api/data
+  // 2. POST /api/data (Full state synchronization)
   if (pathname === '/api/data' && req.method === 'POST') {
     try {
       const raw = await readBody(req);
@@ -214,30 +217,135 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 3. POST /api/reset
-  if (pathname === '/api/reset' && req.method === 'POST') {
-    const cleanCopy = JSON.parse(JSON.stringify(CLEAN_SEED_DATA));
-    saveServerData(cleanCopy);
+  // 3. GET /api/users
+  if (pathname === '/api/users' && req.method === 'GET') {
+    const dbData = cachedData || loadServerData();
     res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
     return res.end(JSON.stringify({
       success: true,
-      data: cleanCopy,
-      lastUpdated: lastUpdatedTimestamp
+      users: dbData.users || []
     }));
   }
 
-  // 4. GET /api/health
-  if (pathname === '/api/health') {
+  // 4. POST /api/users (Add user directly to database)
+  if (pathname === '/api/users' && req.method === 'POST') {
+    try {
+      const raw = await readBody(req);
+      const newUser = JSON.parse(raw);
+      if (!newUser.username || !newUser.fullName) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Username and Full Name are required' }));
+      }
+
+      const dbData = cachedData || loadServerData();
+      if (!Array.isArray(dbData.users)) dbData.users = [];
+
+      // Check username conflict
+      const exists = dbData.users.some(u => u.username.toLowerCase() === newUser.username.trim().toLowerCase());
+      if (exists) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Username already exists' }));
+      }
+
+      const userRecord = {
+        id: newUser.id || "usr-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+        fullName: newUser.fullName.trim(),
+        username: newUser.username.trim().toLowerCase(),
+        password: newUser.password || "123456",
+        role: newUser.role || "CASHIER",
+        status: newUser.status || "active",
+        isMaster: false,
+        createdAt: new Date().toISOString()
+      };
+
+      dbData.users.push(userRecord);
+      saveServerData(dbData);
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({
+        success: true,
+        user: userRecord,
+        users: dbData.users,
+        lastUpdated: lastUpdatedTimestamp
+      }));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+  }
+
+  // 5. PUT /api/users (Update user in database)
+  if (pathname.startsWith('/api/users/') && req.method === 'PUT') {
+    try {
+      const targetId = decodeURIComponent(pathname.split('/api/users/')[1]);
+      const raw = await readBody(req);
+      const updates = JSON.parse(raw);
+
+      const dbData = cachedData || loadServerData();
+      const idx = (dbData.users || []).findIndex(u => u.id === targetId);
+
+      if (idx === -1) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=UTF-8' });
+        return res.end(JSON.stringify({ success: false, error: 'User not found' }));
+      }
+
+      const existing = dbData.users[idx];
+      const isMaster = existing.isMaster || existing.id === 'usr-admin';
+
+      existing.fullName = updates.fullName ? updates.fullName.trim() : existing.fullName;
+      existing.username = updates.username ? updates.username.trim().toLowerCase() : existing.username;
+      if (updates.password) {
+        existing.password = updates.password;
+      }
+      if (!isMaster) {
+        existing.role = updates.role || existing.role;
+        existing.status = updates.status || existing.status;
+      }
+
+      dbData.users[idx] = existing;
+      saveServerData(dbData);
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({
+        success: true,
+        user: existing,
+        users: dbData.users,
+        lastUpdated: lastUpdatedTimestamp
+      }));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({ success: false, error: err.message }));
+    }
+  }
+
+  // 6. DELETE /api/users/:id (Delete user from database)
+  if (pathname.startsWith('/api/users/') && req.method === 'DELETE') {
+    const targetId = decodeURIComponent(pathname.split('/api/users/')[1]);
+    const dbData = cachedData || loadServerData();
+    const existing = (dbData.users || []).find(u => u.id === targetId);
+
+    if (!existing) {
+      res.writeHead(404, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({ success: false, error: 'User not found' }));
+    }
+
+    if (existing.isMaster || existing.id === 'usr-admin' || existing.role === 'ADMIN') {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=UTF-8' });
+      return res.end(JSON.stringify({ success: false, error: 'Mother Admin account cannot be deleted' }));
+    }
+
+    dbData.users = dbData.users.filter(u => u.id !== targetId);
+    saveServerData(dbData);
+
     res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
     return res.end(JSON.stringify({
-      status: 'ok',
-      dbFile: DB_FILE,
-      dataDir: DATA_DIR,
+      success: true,
+      users: dbData.users,
       lastUpdated: lastUpdatedTimestamp
     }));
   }
 
-  // 5. POST /api/auth/login (Authenticates against database file)
+  // 7. POST /api/auth/login (Authenticates against database file)
   if (pathname === '/api/auth/login' && req.method === 'POST') {
     try {
       const raw = await readBody(req);
@@ -247,7 +355,8 @@ const server = http.createServer(async (req, res) => {
         return res.end(JSON.stringify({ success: false, error: 'Username and password are required' }));
       }
 
-      const dbData = cachedData || loadServerData();
+      // Always read fresh from DB file
+      const dbData = loadServerData();
       const users = dbData.users || [];
       const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
 
@@ -282,12 +391,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // 6. POST /api/auth/verify
+  // 8. POST /api/auth/verify
   if (pathname === '/api/auth/verify' && req.method === 'POST') {
     try {
       const raw = await readBody(req);
       const { userId } = JSON.parse(raw);
-      const dbData = cachedData || loadServerData();
+      const dbData = loadServerData();
       const users = dbData.users || [];
       const user = users.find(u => u.id === userId);
 
@@ -313,6 +422,30 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(400, { 'Content-Type': 'application/json; charset=UTF-8' });
       return res.end(JSON.stringify({ success: false, valid: false }));
     }
+  }
+
+  // 9. POST /api/reset
+  if (pathname === '/api/reset' && req.method === 'POST') {
+    const cleanCopy = JSON.parse(JSON.stringify(CLEAN_SEED_DATA));
+    saveServerData(cleanCopy);
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+    return res.end(JSON.stringify({
+      success: true,
+      data: cleanCopy,
+      lastUpdated: lastUpdatedTimestamp
+    }));
+  }
+
+  // 10. GET /api/health
+  if (pathname === '/api/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=UTF-8' });
+    return res.end(JSON.stringify({
+      status: 'ok',
+      dbFile: DB_FILE,
+      dataDir: DATA_DIR,
+      usersCount: (cachedData?.users || []).length,
+      lastUpdated: lastUpdatedTimestamp
+    }));
   }
 
   /* =========================================================

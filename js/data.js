@@ -55,7 +55,6 @@ const StorageManager = {
     try {
       let stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
-        this.save(SEED_DATA);
         return JSON.parse(JSON.stringify(SEED_DATA));
       }
       const parsed = JSON.parse(stored);
@@ -176,6 +175,75 @@ const StorageManager = {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_DATA));
     this.pushToServer(SEED_DATA);
     return JSON.parse(JSON.stringify(SEED_DATA));
+  },
+
+  async addUser(userData) {
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData)
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.users) {
+          const currentData = this.get();
+          currentData.users = result.users;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+          return result.user;
+        }
+      }
+    } catch(e) {}
+    const currentData = this.get();
+    currentData.users.push(userData);
+    this.save(currentData);
+    return userData;
+  },
+
+  async updateUser(userId, updates) {
+    try {
+      const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.users) {
+          const currentData = this.get();
+          currentData.users = result.users;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+          return result.user;
+        }
+      }
+    } catch(e) {}
+    const currentData = this.get();
+    const idx = currentData.users.findIndex(u => u.id === userId);
+    if (idx > -1) {
+      currentData.users[idx] = { ...currentData.users[idx], ...updates };
+      this.save(currentData);
+    }
+  },
+
+  async deleteUser(userId) {
+    try {
+      const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.users) {
+          const currentData = this.get();
+          currentData.users = result.users;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
+          return true;
+        }
+      }
+    } catch(e) {}
+    const currentData = this.get();
+    currentData.users = currentData.users.filter(u => u.id !== userId);
+    this.save(currentData);
+    return true;
   },
 
   exportJSON() {

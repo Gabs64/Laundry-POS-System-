@@ -1463,7 +1463,7 @@ const AdminPanel = {
     document.getElementById("user-status").value = u.status;
   },
 
-  saveUser(e) {
+  async saveUser(e) {
     e.preventDefault();
     const data = StorageManager.get();
     const userId = document.getElementById("user-id").value;
@@ -1482,18 +1482,17 @@ const AdminPanel = {
     };
 
     if (userId) {
-      const idx = data.users.findIndex(u => u.id === userId);
-      if (idx > -1) {
-        payload.password = pwd ? pwd : data.users[idx].password;
-        payload.createdAt = data.users[idx].createdAt;
-        data.users[idx] = payload;
+      const existing = data.users.find(u => u.id === userId);
+      if (existing) {
+        payload.password = pwd ? pwd : existing.password;
+        payload.createdAt = existing.createdAt;
       }
+      await StorageManager.updateUser(userId, payload);
     } else {
       payload.password = pwd || "123456";
-      data.users.push(payload);
+      await StorageManager.addUser(payload);
     }
 
-    StorageManager.save(data);
     this.closeUserModal();
     this.renderUsers();
     App.showToast(`Saved staff account: ${payload.fullName}`, "success");
@@ -1513,9 +1512,8 @@ const AdminPanel = {
     App.showConfirmModal(
       `Delete User "${u.fullName}"?`,
       "This staff member will no longer be able to log in.",
-      () => {
-        data.users = data.users.filter(user => user.id !== id);
-        StorageManager.save(data);
+      async () => {
+        await StorageManager.deleteUser(id);
         this.renderUsers();
         App.showToast(`Deleted staff account ${u.fullName}`, "info");
       }
