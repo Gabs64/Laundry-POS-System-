@@ -511,6 +511,7 @@ const AdminPanel = {
 
         const statusClass = p.status === 'active' ? 'badge-stock-good' : 'badge-stock-out';
         const displayImg = p.imageUrl || placeholder;
+        const costVal = (p.costPrice !== undefined && p.costPrice > 0) ? p.costPrice : (p.price || 0);
 
         gridHtml += `
           <div class="admin-product-card ${p.status === 'inactive' ? 'product-card-inactive' : ''}" 
@@ -530,10 +531,9 @@ const AdminPanel = {
               </div>
               <div class="admin-product-card-pricing">
                 <div>
-                  <span class="admin-product-price">₱${p.price.toFixed(2)}</span>
+                  <span class="admin-product-price">₱${costVal.toFixed(2)}</span>
                   <small class="text-muted">/ ${unit}</small>
                 </div>
-                ${p.costPrice ? `<span class="admin-product-cost">Cost: ₱${p.costPrice.toFixed(2)}</span>` : ''}
               </div>
               <div class="admin-product-card-actions" onclick="event.stopPropagation()">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Service">
@@ -557,6 +557,7 @@ const AdminPanel = {
         const unit = p.unit || "pc";
         const isService = p.isService !== false;
         const typeDisplay = isService ? `<span class="badge-pill badge-active">Laundry Service</span>` : `<span>Stock: <b>${p.stockQuantity}</b></span>`;
+        const costVal = (p.costPrice !== undefined && p.costPrice > 0) ? p.costPrice : (p.price || 0);
 
         tableHtml += `
           <tr>
@@ -566,8 +567,7 @@ const AdminPanel = {
               <small class="text-muted">SKU: ${p.sku || 'N/A'}</small>
             </td>
             <td>${catMap[p.categoryId] || 'General'}</td>
-            <td class="font-bold text-success">₱${p.price.toFixed(2)} <small class="text-muted">/ ${unit}</small></td>
-            <td class="text-muted">₱${(p.costPrice || 0).toFixed(2)}</td>
+            <td class="font-bold text-success">₱${costVal.toFixed(2)} <small class="text-muted">/ ${unit}</small></td>
             <td>${typeDisplay}</td>
             <td><span class="badge-pill ${p.status === 'active' ? 'badge-active' : 'badge-disabled'}">${p.status.toUpperCase()}</span></td>
             <td class="text-right">
@@ -598,6 +598,10 @@ const AdminPanel = {
       document.getElementById("prod-id").value = "";
       document.getElementById("prod-threshold").value = "10";
       document.getElementById("prod-is-service").value = "true";
+      const costInput = document.getElementById("prod-cost");
+      if (costInput) costInput.value = "";
+      const priceInput = document.getElementById("prod-price");
+      if (priceInput) priceInput.value = "";
       this.toggleProductStockInputs();
       this.previewImage("");
     }
@@ -661,8 +665,12 @@ const AdminPanel = {
     document.getElementById("prod-category").value = prod.categoryId;
     document.getElementById("prod-unit").value = prod.unit || "pc";
     document.getElementById("prod-barcode").value = prod.barcode || "";
-    document.getElementById("prod-price").value = prod.price;
-    document.getElementById("prod-cost").value = prod.costPrice || 0;
+    const costVal = (prod.costPrice !== undefined && prod.costPrice > 0) ? prod.costPrice : (prod.price || 0);
+    const costInput = document.getElementById("prod-cost");
+    if (costInput) costInput.value = costVal;
+    const priceInput = document.getElementById("prod-price");
+    if (priceInput) priceInput.value = costVal;
+
     document.getElementById("prod-is-service").value = (prod.isService !== false) ? "true" : "false";
     document.getElementById("prod-stock").value = prod.stockQuantity || 100;
     document.getElementById("prod-threshold").value = prod.lowStockThreshold || 10;
@@ -680,6 +688,8 @@ const AdminPanel = {
     const prodId = document.getElementById("prod-id").value;
     const isService = document.getElementById("prod-is-service").value === "true";
 
+    const costVal = parseFloat(document.getElementById("prod-cost")?.value) || 0;
+
     const productPayload = {
       id: prodId || "prod-" + Date.now(),
       name: document.getElementById("prod-name").value.trim(),
@@ -687,8 +697,8 @@ const AdminPanel = {
       categoryId: document.getElementById("prod-category").value,
       unit: document.getElementById("prod-unit").value,
       barcode: document.getElementById("prod-barcode").value.trim(),
-      price: parseFloat(document.getElementById("prod-price").value) || 0,
-      costPrice: parseFloat(document.getElementById("prod-cost").value) || 0,
+      price: costVal,
+      costPrice: costVal,
       isService: isService,
       stockQuantity: isService ? 999 : (parseInt(document.getElementById("prod-stock").value) || 0),
       lowStockThreshold: parseInt(document.getElementById("prod-threshold").value) || 10,

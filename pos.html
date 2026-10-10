@@ -302,7 +302,7 @@
             <label for="cash-received-input">Amount Received (₱)</label>
             <div class="amount-input-wrapper">
               <span class="currency-prefix">₱</span>
-              <input type="number" id="cash-received-input" step="0.25" placeholder="0.00" oninput="CashierPOS.calculateChange()" autofocus>
+              <input type="number" id="cash-received-input" step="any" placeholder="0.00" oninput="CashierPOS.calculateChange()" autofocus>
             </div>
           </div>
 
@@ -482,7 +482,7 @@
           </div>
           <div class="form-group col-6">
             <label for="custom-discount-val">Value</label>
-            <input type="number" id="custom-discount-val" min="0" step="0.5" placeholder="e.g. 15">
+            <input type="number" id="custom-discount-val" min="0" step="any" placeholder="e.g. 15">
           </div>
         </div>
       </div>

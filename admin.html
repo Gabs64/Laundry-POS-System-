@@ -354,8 +354,7 @@
                     <th>Image</th>
                     <th>Service Name & SKU</th>
                     <th>Category</th>
-                    <th>Rate / Unit</th>
-                    <th>Cost Rate</th>
+                    <th>Direct Cost / Unit</th>
                     <th>Type / Stock</th>
                     <th>Status</th>
                     <th class="text-right">Actions</th>
@@ -907,13 +906,10 @@
           </div>
 
           <div class="form-row">
-            <div class="form-group col-6">
-              <label for="prod-price">Selling Rate (₱) *</label>
-              <input type="number" id="prod-price" min="0.01" step="0.25" placeholder="35.00" required>
-            </div>
-            <div class="form-group col-6">
-              <label for="prod-cost">Direct Cost (₱)</label>
-              <input type="number" id="prod-cost" min="0" step="0.25" placeholder="10.00">
+            <div class="form-group col-12">
+              <label for="prod-cost">Direct Cost (₱) *</label>
+              <input type="number" id="prod-cost" min="0" step="any" placeholder="75.00" required>
+              <input type="hidden" id="prod-price">
             </div>
           </div>
 

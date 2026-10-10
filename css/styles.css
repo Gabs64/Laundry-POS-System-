@@ -2899,6 +2899,7 @@ img {
 .col-4 { flex: 4; }
 .col-6 { flex: 6; }
 .col-8 { flex: 8; }
+.col-12 { flex: 12; width: 100%; }
 
 .data-actions-flex {
   display: grid;
