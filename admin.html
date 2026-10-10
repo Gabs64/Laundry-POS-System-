@@ -18,6 +18,8 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Chart.js CDN for Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- HTML5 QR Code / Barcode Scanner CDN -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -422,7 +424,10 @@
               </div>
             </div>
             <div class="toolbar-right">
-              <button type="button" class="btn btn-primary" onclick="AdminPanel.openAddSupplyModal()">
+              <button type="button" class="btn btn-primary" onclick="AdminPanel.openBarcodeDetectorModal()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); border-color: #6366f1;">
+                <i data-lucide="scan-barcode"></i> Scan Barcode
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="AdminPanel.openAddSupplyModal()">
                 <i data-lucide="package-plus"></i> Add Supply / Detergent
               </button>
               <button type="button" class="btn btn-secondary" onclick="AdminPanel.openInventoryLogsModal()">
@@ -1376,6 +1381,190 @@
           <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Attendance</button>
         </div>
       </form>
+    </div>
+  <!-- AUTO BARCODE DETECTOR & ONLINE LOOKUP MODAL -->
+  <div id="modal-barcode-detector" class="modal-backdrop">
+    <div class="modal-dialog modal-barcode-detector-dialog">
+      <div class="modal-header">
+        <div class="modal-title" style="display:flex; align-items:center; gap:0.75rem;">
+          <div class="modal-icon-badge">
+            <i data-lucide="scan-barcode"></i>
+          </div>
+          <div>
+            <h3 style="margin:0;">Supplies Barcode Scanner</h3>
+            <p class="modal-subtitle">Auto-detect supplies via online registry and reflect into inventory.</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="AdminPanel.closeBarcodeDetectorModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Live Scanner Viewport & Camera Controls -->
+        <div class="scanner-camera-card">
+          <div class="camera-card-header">
+            <div class="camera-status-pill" id="camera-status-pill">
+              <span class="status-dot"></span>
+              <span id="camera-status-text">Camera Standby</span>
+            </div>
+            <div class="camera-actions-row">
+              <button type="button" class="btn btn-sm btn-secondary" id="btn-toggle-camera" onclick="AdminPanel.toggleBarcodeCamera()">
+                <i data-lucide="camera"></i> Start Camera
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btn-flip-camera" onclick="AdminPanel.flipBarcodeCamera()" style="display:none;">
+                <i data-lucide="refresh-cw"></i> Flip
+              </button>
+            </div>
+          </div>
+
+          <div class="camera-viewport-wrapper" id="camera-viewport-wrapper">
+            <div id="barcode-camera-stream" class="barcode-camera-stream"></div>
+            <!-- Laser overlay line animation -->
+            <div class="scanner-laser-line" id="scanner-laser-line" style="display:none;"></div>
+            <div class="scanner-reticle" id="scanner-reticle" style="display:none;">
+              <span class="reticle-corner tl"></span>
+              <span class="reticle-corner tr"></span>
+              <span class="reticle-corner bl"></span>
+              <span class="reticle-corner br"></span>
+            </div>
+            <!-- Standby placeholder before camera starts -->
+            <div class="camera-standby-placeholder" id="camera-standby-placeholder">
+              <i data-lucide="scan" class="standby-icon"></i>
+              <p>Camera ready. Click <b>"Start Camera"</b> or scan with a USB barcode gun.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual / Handheld Scanner Input Bar -->
+        <div class="barcode-input-section mt-3">
+          <label for="barcode-detector-input" class="form-label font-bold">
+            <i data-lucide="barcode"></i> Barcode Number (USB Gun Scanner / Manual Input)
+          </label>
+          <div class="input-with-button">
+            <input type="text" id="barcode-detector-input"
+              placeholder="Scan or enter barcode (e.g. 4800092330052, 049000000443)..."
+              autocomplete="off"
+              onkeydown="if(event.key==='Enter'){ event.preventDefault(); AdminPanel.triggerBarcodeSearch(); }">
+            <button type="button" class="btn btn-primary" id="btn-search-barcode" onclick="AdminPanel.triggerBarcodeSearch()">
+              <i data-lucide="search"></i> Lookup Online
+            </button>
+          </div>
+          <div class="barcode-input-helper-row">
+            <label class="auto-reflect-toggle-label">
+              <input type="checkbox" id="barcode-auto-reflect-toggle" checked>
+              <span>⚡ <b>Auto-reflect directly into Supplies Inventory</b> upon scan</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Quick Detergent & Supplies Test Presets -->
+        <div class="barcode-presets-section mt-3">
+          <div class="presets-label">
+            <span>✨ Quick Presets (Click to Test):</span>
+          </div>
+          <div class="barcode-presets-grid">
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092330052')">
+              🧺 Ariel Sunrise Fresh
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092113228')">
+              🧼 Tide with Downy
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4902430730006')">
+              🌸 Downy Sunrise Fresh
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('8710447385555')">
+              🌺 Surf Blossom Fresh
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800888123456')">
+              🫧 Breeze Power Clean
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800119223344')">
+              ✨ Zonrox Bleach Floral
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800555112233')">
+              ⭐ Pride All-in-1
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('037000806497')">
+              🌿 Gain Flings Pacs
+            </button>
+          </div>
+        </div>
+
+        <!-- Searching / Loading Indicator -->
+        <div class="barcode-searching-loader mt-3" id="barcode-detector-loading" style="display:none;">
+          <div class="searching-spinner"></div>
+          <div class="searching-texts">
+            <h5>Searching Online Barcode Registries...</h5>
+            <p>Querying Open Products Facts, Open Food Facts, UPCitemdb, and Laundry Database.</p>
+          </div>
+        </div>
+
+        <!-- Detected Product Result Preview & Auto-Reflect Card -->
+        <div class="detected-product-card mt-3" id="barcode-detector-result" style="display:none;">
+          <div class="detected-card-header">
+            <span class="badge-source" id="detected-source-badge">Online Registry</span>
+            <span class="detected-barcode-pill" id="detected-barcode-display">4800092330052</span>
+          </div>
+
+          <div class="detected-card-body">
+            <div class="detected-thumb-box">
+              <img id="detected-product-image" src="" alt="Product Photo" onerror="this.src='https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80'">
+            </div>
+            <div class="detected-info-form">
+              <div class="form-group mb-2">
+                <label class="text-xs text-muted">Detected Product Name</label>
+                <input type="text" id="detected-product-name" class="form-control form-control-sm font-bold">
+              </div>
+
+              <div class="form-row mb-2">
+                <div class="form-group col-6">
+                  <label class="text-xs text-muted">Pricing / Dispense Unit</label>
+                  <select id="detected-product-unit" class="form-control form-control-sm">
+                    <option value="sachet">Per Sachet</option>
+                    <option value="scoop">Per Scoop</option>
+                    <option value="bottle">Per Bottle</option>
+                    <option value="load">Per Load</option>
+                    <option value="pc">Per Piece</option>
+                    <option value="kg">Per Kilo (kg)</option>
+                  </select>
+                </div>
+                <div class="form-group col-6">
+                  <label class="text-xs text-muted">Direct Cost (₱)</label>
+                  <input type="number" id="detected-product-cost" class="form-control form-control-sm" step="any" min="0" value="15.00">
+                </div>
+              </div>
+
+              <div class="form-row mb-2">
+                <div class="form-group col-12">
+                  <label class="text-xs text-muted">Stock Quantity to Add / Reflect</label>
+                  <div class="qty-stepper-row">
+                    <input type="number" id="detected-product-qty" class="form-control form-control-sm font-bold" min="1" step="any" value="50">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.adjustDetectedQty(10)">+10</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.adjustDetectedQty(25)">+25</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.adjustDetectedQty(50)">+50</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.adjustDetectedQty(100)">+100</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="inventory-status-pill mt-2" id="detected-existing-stock-note">
+                <!-- Shows whether item is new or existing in inventory -->
+              </div>
+            </div>
+          </div>
+
+          <div class="detected-card-footer mt-3">
+            <button type="button" class="btn btn-success btn-block" id="btn-confirm-reflect-supply" onclick="AdminPanel.confirmReflectSupplyItem()">
+              <i data-lucide="check-circle-2"></i> Reflect into Supplies Inventory Now
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="AdminPanel.closeBarcodeDetectorModal()">Done</button>
+      </div>
     </div>
   </div>
 

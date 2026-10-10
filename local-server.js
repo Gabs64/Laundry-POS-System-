@@ -320,6 +320,127 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
+const LAUNDRY_SUPPLIES_CATALOG = {
+  '4800092330052': { name: 'Ariel Sunrise Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated laundry detergent powder with Sunrise Fresh fragrance.' },
+  '4800092330069': { name: 'Ariel Anti-Bacterial Powder Detergent', brand: 'Ariel', unit: 'scoop', cost: 19.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: '99.9% germ protection laundry powder.' },
+  '4800092330106': { name: 'Ariel Power Gel Concentrated Liquid', brand: 'Ariel', unit: 'sachet', cost: 22.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Deep stain removal liquid detergent for front & top load washers.' },
+  '4800092113228': { name: 'Tide with Downy Laundry Powder', brand: 'Tide', unit: 'scoop', cost: 17.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Dual action detergent powder with Downy softness.' },
+  '4800092113235': { name: 'Tide Perfect Clean Original Powder', brand: 'Tide', unit: 'scoop', cost: 16.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Deep clean formula for stubborn everyday laundry dirt.' },
+  '4902430730006': { name: 'Downy Sunrise Fresh Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'All-day odor defense and long-lasting fabric softness.' },
+  '4902430730013': { name: 'Downy Garden Bloom Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Floral freshness fabric softener sachet.' },
+  '4902430730020': { name: 'Downy Mystique Parfum Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 14.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Premium perfume collection fabric enhancer.' },
+  '4902430730037': { name: 'Downy Passion Parfum Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 14.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Romantic floral perfume collection fabric softener.' },
+  '8710447385555': { name: 'Surf Blossom Fresh Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Sun fresh burst active cleaning detergent powder.' },
+  '8710447385562': { name: 'Surf Sun Fresh Laundry Detergent', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Fresh outdoor laundry scent formula.' },
+  '8710447385579': { name: 'Surf Cherry Blossom Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Infused with cherry blossom scent beads.' },
+  '4800888123456': { name: 'Breeze Power Clean Active Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated bleach-like power on tough collar and cuff stains.' },
+  '4800888123463': { name: 'Breeze Goodbye Kulob Laundry Liquid', brand: 'Breeze', unit: 'sachet', cost: 18.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Anti-indoor damp odor (Goodbye Kulob) laundry formula.' },
+  '4800119223344': { name: 'Zonrox Gentle Bleach Floral Fresh', brand: 'Zonrox', unit: 'bottle', cost: 25.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Antibacterial laundry bleach with gentle floral fragrance.' },
+  '4800119223306': { name: 'Zonrox Original Sanitizing Bleach', brand: 'Zonrox', unit: 'bottle', cost: 22.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: '99.9% antibacterial disinfecting white wash bleach.' },
+  '4800119223351': { name: 'Zonrox Colorsafe Oxygen Bleach', brand: 'Zonrox', unit: 'sachet', cost: 15.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Oxygen power bleach safe on colored garments.' },
+  '4800555112233': { name: 'Pride All-in-1 Powder Detergent', brand: 'Pride', unit: 'scoop', cost: 13.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Eco-friendly biodegradable laundry powder.' },
+  '4800777998811': { name: 'Champion Infinity Detergent Powder', brand: 'Champion', unit: 'scoop', cost: 13.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Pure clean laundry detergent powder.' },
+  '4800333221100': { name: 'Callalily Fabric Softener Sachet', brand: 'Callalily', unit: 'sachet', cost: 11.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Affordable concentrated fabric softener.' },
+  '037000806497': { name: 'Gain Flings Laundry Detergent Pacs', brand: 'Gain', unit: 'sachet', cost: 25.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: '3-in-1 detergent pacs with Oxi boost.' },
+  '037000806480': { name: 'Tide PODS Free & Gentle Detergent Pacs', brand: 'Tide', unit: 'sachet', cost: 28.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Hypoallergenic detergent pacs for sensitive skin.' },
+  '044600307685': { name: 'Clorox Regular Concentrated Bleach', brand: 'Clorox', unit: 'bottle', cost: 35.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated disinfecting liquid bleach.' }
+};
+
+async function lookupBarcodeOnline(barcode) {
+  const code = String(barcode || '').trim();
+  if (!code) return { found: false, error: 'Empty barcode' };
+
+  // 1. Direct Catalog Match
+  if (LAUNDRY_SUPPLIES_CATALOG[code]) {
+    return {
+      found: true,
+      source: 'Verified Laundry Registry',
+      barcode: code,
+      ...LAUNDRY_SUPPLIES_CATALOG[code]
+    };
+  }
+
+  // 2. Query UPCitemdb trial API
+  try {
+    const upcRes = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(code)}`, {
+      signal: AbortSignal.timeout(3500),
+      headers: { 'Accept': 'application/json' }
+    });
+    if (upcRes.ok) {
+      const upcData = await upcRes.json();
+      if (upcData.code === 'OK' && Array.isArray(upcData.items) && upcData.items.length > 0) {
+        const item = upcData.items[0];
+        const lowerName = (item.title || '').toLowerCase();
+        let unit = 'pc';
+        if (lowerName.includes('powder') || lowerName.includes('detergent')) unit = 'scoop';
+        else if (lowerName.includes('liquid') || lowerName.includes('sachet') || lowerName.includes('pod') || lowerName.includes('downy') || lowerName.includes('softener')) unit = 'sachet';
+        else if (lowerName.includes('bleach') || lowerName.includes('bottle')) unit = 'bottle';
+
+        return {
+          found: true,
+          source: 'UPCitemdb Global Registry',
+          barcode: code,
+          name: item.title,
+          brand: item.brand || '',
+          categoryName: 'Detergent / Supplies',
+          unit: unit,
+          cost: (item.lowest_recorded_price && item.lowest_recorded_price > 0) ? Math.round(item.lowest_recorded_price * 10) / 10 : 15.00,
+          imageUrl: (item.images && item.images.length > 0) ? item.images[0] : 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80',
+          description: item.description || `Barcode: ${code}`
+        };
+      }
+    }
+  } catch (e) {}
+
+  // 3. Query Open Food / Products Facts
+  try {
+    const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`, {
+      signal: AbortSignal.timeout(3500),
+      headers: { 'User-Agent': 'LaundryPOS/1.0 (POS System Barcode Detector)' }
+    });
+    if (offRes.ok) {
+      const offData = await offRes.json();
+      if (offData.status === 1 && offData.product) {
+        const p = offData.product;
+        const name = p.product_name || p.product_name_en || p.generic_name || `Product (${code})`;
+        const brand = p.brands || p.brand_owner || '';
+        const lowerName = name.toLowerCase();
+        let unit = 'pc';
+        if (lowerName.includes('powder')) unit = 'scoop';
+        else if (lowerName.includes('liquid') || lowerName.includes('sachet')) unit = 'sachet';
+        else if (lowerName.includes('bottle')) unit = 'bottle';
+
+        return {
+          found: true,
+          source: 'Open Product Registry',
+          barcode: code,
+          name: name,
+          brand: brand,
+          categoryName: 'Detergent / Supplies',
+          unit: unit,
+          cost: 15.00,
+          imageUrl: p.image_url || p.image_front_url || 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80',
+          description: p.generic_name || `Barcode: ${code}`
+        };
+      }
+    }
+  } catch (e) {}
+
+  // 4. Fallback smart item generator
+  return {
+    found: false,
+    source: 'Custom Barcode Scan',
+    barcode: code,
+    name: `Laundry Supply (${code.slice(-6) || code})`,
+    brand: 'Custom Brand',
+    categoryName: 'Detergent / Supplies',
+    unit: 'sachet',
+    cost: 15.00,
+    imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80',
+    description: `Scanned custom supply item with barcode ${code}`
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   let pathname = parsedUrl.pathname.replace(/\/+$/, '') || '/';
@@ -775,7 +896,24 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 14. GET /api/health
+    // 14. GET /api/barcode/lookup?code=...
+    if (pathname === '/api/barcode/lookup' && method === 'GET') {
+      const code = parsedUrl.searchParams.get('code') || '';
+      try {
+        const result = await lookupBarcodeOnline(code);
+        return sendJson(res, 200, {
+          success: true,
+          ...result
+        });
+      } catch (err) {
+        return sendJson(res, 500, {
+          success: false,
+          error: err.message || 'Failed to search barcode'
+        });
+      }
+    }
+
+    // 15. GET /api/health
     if (pathname === '/api/health') {
       const dbData = loadServerData();
       return sendJson(res, 200, {

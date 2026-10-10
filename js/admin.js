@@ -1140,6 +1140,467 @@ const AdminPanel = {
   },
 
   /* =========================================================
+     5.1 SUPPLIES AUTO BARCODE SCANNER & ONLINE DETECTOR
+     ========================================================= */
+  _barcodeHtml5QrCode: null,
+  _barcodeCameraActive: false,
+  _barcodeCameraFacingMode: "environment",
+  _currentDetectedProduct: null,
+  _lastScanTime: 0,
+  _lastScannedCode: "",
+
+  openBarcodeDetectorModal() {
+    const modal = document.getElementById("modal-barcode-detector");
+    if (!modal) return;
+    modal.classList.add("active");
+
+    const input = document.getElementById("barcode-detector-input");
+    if (input) {
+      input.value = "";
+      setTimeout(() => input.focus(), 250);
+    }
+
+    const resultBox = document.getElementById("barcode-detector-result");
+    if (resultBox) resultBox.style.display = "none";
+
+    const loadingBox = document.getElementById("barcode-detector-loading");
+    if (loadingBox) loadingBox.style.display = "none";
+
+    this.updateCameraStatusUI(false);
+    if (window.lucide) lucide.createIcons();
+  },
+
+  closeBarcodeDetectorModal() {
+    this.stopBarcodeCamera();
+    const modal = document.getElementById("modal-barcode-detector");
+    if (modal) modal.classList.remove("active");
+  },
+
+  updateCameraStatusUI(isActive, text = null) {
+    const pill = document.getElementById("camera-status-pill");
+    const statusText = document.getElementById("camera-status-text");
+    const toggleBtn = document.getElementById("btn-toggle-camera");
+    const flipBtn = document.getElementById("btn-flip-camera");
+    const laser = document.getElementById("scanner-laser-line");
+    const reticle = document.getElementById("scanner-reticle");
+    const placeholder = document.getElementById("camera-standby-placeholder");
+
+    if (isActive) {
+      if (pill) pill.classList.add("active");
+      if (statusText) statusText.textContent = text || "Scanning Active";
+      if (toggleBtn) toggleBtn.innerHTML = `<i data-lucide="square"></i> Stop Camera`;
+      if (flipBtn) flipBtn.style.display = "inline-flex";
+      if (laser) laser.style.display = "block";
+      if (reticle) reticle.style.display = "block";
+      if (placeholder) placeholder.style.display = "none";
+    } else {
+      if (pill) pill.classList.remove("active");
+      if (statusText) statusText.textContent = text || "Camera Standby";
+      if (toggleBtn) toggleBtn.innerHTML = `<i data-lucide="camera"></i> Start Camera`;
+      if (flipBtn) flipBtn.style.display = "none";
+      if (laser) laser.style.display = "none";
+      if (reticle) reticle.style.display = "none";
+      if (placeholder) placeholder.style.display = "flex";
+    }
+    if (window.lucide) lucide.createIcons();
+  },
+
+  async toggleBarcodeCamera() {
+    if (this._barcodeCameraActive) {
+      await this.stopBarcodeCamera();
+    } else {
+      await this.startBarcodeCamera();
+    }
+  },
+
+  async startBarcodeCamera() {
+    const streamContainer = document.getElementById("barcode-camera-stream");
+    if (!streamContainer) return;
+
+    if (typeof Html5Qrcode === "undefined") {
+      App.showToast("Barcode scanner library is loading, please try again in a moment.", "info");
+      return;
+    }
+
+    try {
+      this.updateCameraStatusUI(true, "Starting camera...");
+
+      if (!this._barcodeHtml5QrCode) {
+        this._barcodeHtml5QrCode = new Html5Qrcode("barcode-camera-stream");
+      }
+
+      const config = {
+        fps: 12,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const width = Math.min(viewfinderWidth * 0.85, 300);
+          const height = Math.min(viewfinderHeight * 0.65, 150);
+          return { width: Math.floor(width), height: Math.floor(height) };
+        },
+        aspectRatio: 1.777778
+      };
+
+      await this._barcodeHtml5QrCode.start(
+        { facingMode: this._barcodeCameraFacingMode },
+        config,
+        (decodedText) => {
+          this.onBarcodeDetected(decodedText);
+        },
+        () => {}
+      );
+
+      this._barcodeCameraActive = true;
+      this.updateCameraStatusUI(true, "Scanning Live");
+    } catch (err) {
+      console.warn("Camera start error:", err);
+      this._barcodeCameraActive = false;
+      this.updateCameraStatusUI(false, "Camera Access Denied / Unavailable");
+      App.showToast("Camera access unavailable. You can enter or scan barcodes with a USB scanner directly.", "warning");
+    }
+  },
+
+  async stopBarcodeCamera() {
+    if (this._barcodeHtml5QrCode && this._barcodeCameraActive) {
+      try {
+        await this._barcodeHtml5QrCode.stop();
+      } catch (e) {
+        console.warn("Camera stop error:", e);
+      }
+    }
+    this._barcodeCameraActive = false;
+    this.updateCameraStatusUI(false, "Camera Standby");
+  },
+
+  async flipBarcodeCamera() {
+    this._barcodeCameraFacingMode = (this._barcodeCameraFacingMode === "environment") ? "user" : "environment";
+    await this.stopBarcodeCamera();
+    await this.startBarcodeCamera();
+  },
+
+  onBarcodeDetected(code) {
+    if (!code) return;
+    const cleanCode = String(code).trim();
+    if (!cleanCode) return;
+
+    // Prevent duplicate rapid-fire scans in under 1.8 seconds
+    const now = Date.now();
+    if (this._lastScanTime && (now - this._lastScanTime < 1800) && this._lastScannedCode === cleanCode) {
+      return;
+    }
+    this._lastScanTime = now;
+    this._lastScannedCode = cleanCode;
+
+    Sound.playSuccess();
+    const input = document.getElementById("barcode-detector-input");
+    if (input) input.value = cleanCode;
+
+    this.searchBarcodeOnline(cleanCode);
+  },
+
+  testScanPreset(code) {
+    const input = document.getElementById("barcode-detector-input");
+    if (input) input.value = code;
+    this.searchBarcodeOnline(code);
+  },
+
+  triggerBarcodeSearch() {
+    const input = document.getElementById("barcode-detector-input");
+    const code = (input?.value || "").trim();
+    if (!code) {
+      App.showToast("Please enter or scan a barcode first.", "warning");
+      return;
+    }
+    this.searchBarcodeOnline(code);
+  },
+
+  async searchBarcodeOnline(code) {
+    const loadingBox = document.getElementById("barcode-detector-loading");
+    const resultBox = document.getElementById("barcode-detector-result");
+    if (loadingBox) loadingBox.style.display = "flex";
+    if (resultBox) resultBox.style.display = "none";
+
+    let productDetails = null;
+
+    try {
+      // 1. Primary lookup via server endpoint
+      const res = await fetch(getApiUrl(`/api/barcode/lookup?code=${encodeURIComponent(code)}`), {
+        signal: AbortSignal.timeout(4000)
+      }).catch(() => null);
+
+      if (res && res.ok) {
+        const json = await res.json().catch(() => null);
+        if (json && json.success) {
+          productDetails = json;
+        }
+      }
+    } catch (e) {
+      console.warn("Server barcode lookup error:", e);
+    }
+
+    // 2. Client fallback if server lookup not available
+    if (!productDetails) {
+      productDetails = await this.clientFallbackBarcodeLookup(code);
+    }
+
+    if (loadingBox) loadingBox.style.display = "none";
+
+    if (!productDetails) {
+      App.showToast(`No details found for barcode ${code}. You can enter details manually.`, "info");
+      return;
+    }
+
+    this._currentDetectedProduct = productDetails;
+    this.renderDetectedProductCard(productDetails);
+
+    // Auto-reflect directly into Supplies Inventory if toggle is enabled
+    const autoReflect = document.getElementById("barcode-auto-reflect-toggle")?.checked;
+    if (autoReflect) {
+      this.confirmReflectSupplyItem();
+    }
+  },
+
+  async clientFallbackBarcodeLookup(code) {
+    const CLIENT_CATALOG = {
+      '4800092330052': { name: 'Ariel Sunrise Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated laundry detergent powder with Sunrise Fresh fragrance.' },
+      '4800092113228': { name: 'Tide with Downy Laundry Powder', brand: 'Tide', unit: 'scoop', cost: 17.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Dual action detergent powder with Downy softness.' },
+      '4902430730006': { name: 'Downy Sunrise Fresh Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'All-day odor defense and long-lasting fabric softness.' },
+      '8710447385555': { name: 'Surf Blossom Fresh Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Sun fresh burst active cleaning detergent powder.' },
+      '4800888123456': { name: 'Breeze Power Clean Active Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated bleach-like power on tough stains.' },
+      '4800119223344': { name: 'Zonrox Gentle Bleach Floral Fresh', brand: 'Zonrox', unit: 'bottle', cost: 25.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Antibacterial laundry bleach with gentle floral fragrance.' },
+      '4800555112233': { name: 'Pride All-in-1 Powder Detergent', brand: 'Pride', unit: 'scoop', cost: 13.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Eco-friendly biodegradable laundry powder.' },
+      '037000806497': { name: 'Gain Flings Laundry Detergent Pacs', brand: 'Gain', unit: 'sachet', cost: 25.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: '3-in-1 detergent pacs with Oxi boost.' }
+    };
+
+    if (CLIENT_CATALOG[code]) {
+      return {
+        found: true,
+        source: 'Laundry Catalog',
+        barcode: code,
+        ...CLIENT_CATALOG[code]
+      };
+    }
+
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`, {
+        signal: AbortSignal.timeout(3000)
+      });
+      const data = await res.json();
+      if (data && data.status === 1 && data.product) {
+        const p = data.product;
+        return {
+          found: true,
+          source: 'Open Product Registry',
+          barcode: code,
+          name: p.product_name || p.product_name_en || `Supply (${code})`,
+          brand: p.brands || '',
+          unit: 'sachet',
+          cost: 15.00,
+          imageUrl: p.image_url || p.image_front_url || 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80',
+          description: p.generic_name || `Barcode: ${code}`
+        };
+      }
+    } catch (e) {}
+
+    return {
+      found: false,
+      source: 'Custom Barcode',
+      barcode: code,
+      name: `Laundry Supply (${code.slice(-6) || code})`,
+      brand: 'Custom',
+      unit: 'sachet',
+      cost: 15.00,
+      imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80',
+      description: `Custom laundry supply (${code})`
+    };
+  },
+
+  renderDetectedProductCard(prod) {
+    const resultBox = document.getElementById("barcode-detector-result");
+    if (!resultBox) return;
+
+    const sourceBadge = document.getElementById("detected-source-badge");
+    const barcodeDisplay = document.getElementById("detected-barcode-display");
+    const imageEl = document.getElementById("detected-product-image");
+    const nameInput = document.getElementById("detected-product-name");
+    const unitSelect = document.getElementById("detected-product-unit");
+    const costInput = document.getElementById("detected-product-cost");
+    const qtyInput = document.getElementById("detected-product-qty");
+    const noteBox = document.getElementById("detected-existing-stock-note");
+    const actionBtn = document.getElementById("btn-confirm-reflect-supply");
+
+    if (sourceBadge) sourceBadge.textContent = prod.source || (prod.found ? "Verified Registry" : "Custom Barcode");
+    if (barcodeDisplay) barcodeDisplay.textContent = prod.barcode;
+    if (imageEl) imageEl.src = prod.imageUrl || 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80';
+    if (nameInput) nameInput.value = prod.name;
+    if (unitSelect) unitSelect.value = prod.unit || "sachet";
+    if (costInput) costInput.value = (prod.cost !== undefined && prod.cost > 0) ? prod.cost : 15.00;
+    if (qtyInput) qtyInput.value = 50;
+
+    // Check if this item is already in supplies inventory
+    const data = StorageManager.get();
+    const existing = (data.products || []).find(p => !p.isService && (p.barcode === prod.barcode || (p.sku && p.sku === prod.barcode)));
+
+    if (existing) {
+      if (noteBox) {
+        noteBox.className = "inventory-status-pill is-existing mt-2";
+        noteBox.innerHTML = `⚠️ <b>Existing in Inventory:</b> Currently <b>${existing.stockQuantity} ${existing.unit || 'pcs'}</b> in stock. Adding stock will replenish it.`;
+      }
+      if (actionBtn) {
+        actionBtn.innerHTML = `<i data-lucide="refresh-cw"></i> Restock Existing Supply Item`;
+      }
+    } else {
+      if (noteBox) {
+        noteBox.className = "inventory-status-pill is-new mt-2";
+        noteBox.innerHTML = `✨ <b>New Supply Item:</b> Will be added to Supplies Inventory with initial stock of <b>50 ${prod.unit || 'sachet'}</b>.`;
+      }
+      if (actionBtn) {
+        actionBtn.innerHTML = `<i data-lucide="check-circle-2"></i> Reflect into Supplies Inventory Now`;
+      }
+    }
+
+    resultBox.style.display = "block";
+    if (window.lucide) lucide.createIcons();
+  },
+
+  adjustDetectedQty(delta) {
+    const input = document.getElementById("detected-product-qty");
+    if (!input) return;
+    const current = parseFloat(input.value) || 0;
+    input.value = Math.max(1, current + delta);
+  },
+
+  confirmReflectSupplyItem() {
+    const nameInput = document.getElementById("detected-product-name");
+    const unitSelect = document.getElementById("detected-product-unit");
+    const costInput = document.getElementById("detected-product-cost");
+    const qtyInput = document.getElementById("detected-product-qty");
+    const barcodeDisplay = document.getElementById("detected-barcode-display");
+    const imageEl = document.getElementById("detected-product-image");
+
+    const barcode = (barcodeDisplay?.textContent || "").trim();
+    const name = (nameInput?.value || "").trim() || `Supply Item (${barcode})`;
+    const unit = unitSelect?.value || "sachet";
+    const cost = parseFloat(costInput?.value) || 15.00;
+    const qty = parseFloat(qtyInput?.value) || 50;
+    const imageUrl = imageEl?.src || 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80';
+
+    if (!barcode) {
+      App.showToast("No barcode detected to save.", "warning");
+      return;
+    }
+
+    const data = StorageManager.get();
+    if (!data.products) data.products = [];
+    if (!data.inventoryLogs) data.inventoryLogs = [];
+
+    // Find or create category for supplies
+    let supplyCat = (data.categories || []).find(c => c.name.toLowerCase().includes("suppl") || c.name.toLowerCase().includes("detergent"));
+    if (!supplyCat) {
+      supplyCat = {
+        id: "cat-supplies",
+        name: "Laundry Supplies & Detergents",
+        description: "Laundry powders, fabric conditioners, stain boosters, and bags",
+        order: (data.categories || []).length + 1
+      };
+      data.categories.push(supplyCat);
+    }
+
+    const existingIndex = data.products.findIndex(p => !p.isService && (p.barcode === barcode || (p.sku && p.sku === barcode)));
+
+    let targetProductId = "";
+    let finalStock = qty;
+
+    if (existingIndex > -1) {
+      // Restock existing product
+      const item = data.products[existingIndex];
+      targetProductId = item.id;
+      const prevStock = Number(item.stockQuantity) || 0;
+      item.stockQuantity = prevStock + qty;
+      finalStock = item.stockQuantity;
+      if (cost > 0) {
+        item.costPrice = cost;
+        item.price = cost;
+      }
+      if (name) item.name = name;
+      if (unit) item.unit = unit;
+
+      data.inventoryLogs.unshift({
+        id: "log-" + Date.now(),
+        productId: item.id,
+        productName: item.name,
+        type: "RESTOCK",
+        quantity: qty,
+        previousStock: prevStock,
+        newStock: item.stockQuantity,
+        reason: `Auto Barcode Scanner Restock (${barcode})`,
+        notes: "Scanned and reflected automatically",
+        userName: AdminSite?.currentUser?.fullName || "Admin",
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Create new supply product
+      const newProdId = "prod-sup-" + Date.now();
+      targetProductId = newProdId;
+      const newSupply = {
+        id: newProdId,
+        name: name,
+        sku: "BAR-" + barcode.slice(-6),
+        categoryId: supplyCat.id,
+        unit: unit,
+        barcode: barcode,
+        price: cost,
+        costPrice: cost,
+        isService: false, // Physical supply item!
+        stockQuantity: qty,
+        lowStockThreshold: 10,
+        description: `Auto-detected online supply item (Barcode: ${barcode})`,
+        imageUrl: imageUrl,
+        status: "active"
+      };
+      data.products.push(newSupply);
+
+      data.inventoryLogs.unshift({
+        id: "log-" + Date.now(),
+        productId: newSupply.id,
+        productName: newSupply.name,
+        type: "INITIAL_SCAN",
+        quantity: qty,
+        previousStock: 0,
+        newStock: qty,
+        reason: `Auto Barcode Detector Initial Stock (${barcode})`,
+        notes: "Registered automatically from online barcode lookup",
+        userName: AdminSite?.currentUser?.fullName || "Admin",
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Save locally and push to server
+    StorageManager.save(data);
+    Sound.playSuccess();
+    App.showToast(`Reflected "${name}" into Supplies Inventory (+${qty} ${unit})!`, "success");
+
+    // Update the Supplies Inventory table immediately
+    this.renderInventoryTable();
+
+    // Briefly highlight the row in the table
+    setTimeout(() => {
+      const rows = document.querySelectorAll("#admin-inventory-table-tbody tr");
+      rows.forEach(r => {
+        if (r.textContent.includes(name) || r.textContent.includes(barcode)) {
+          r.classList.add("row-highlight-flash");
+          r.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      });
+    }, 150);
+
+    // Refresh existing stock note in modal
+    const noteBox = document.getElementById("detected-existing-stock-note");
+    if (noteBox) {
+      noteBox.className = "inventory-status-pill is-existing mt-2";
+      noteBox.innerHTML = `✅ <b>Reflected in Inventory:</b> Total current stock is now <b>${finalStock} ${unit}</b>.`;
+    }
+  },
+
+  /* =========================================================
      6. SALES & CLAIMS HISTORY TAB
      ========================================================= */
   filterSalesTable() {
