@@ -763,7 +763,19 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 13. GET /api/health
+    // 13. POST /api/sales/clear
+    if (pathname === '/api/sales/clear' && method === 'POST') {
+      const dbData = loadServerData();
+      dbData.sales = [];
+      saveServerData(dbData);
+      return sendJson(res, 200, {
+        success: true,
+        data: dbData,
+        lastUpdated: lastUpdatedTimestamp
+      });
+    }
+
+    // 14. GET /api/health
     if (pathname === '/api/health') {
       const dbData = loadServerData();
       return sendJson(res, 200, {

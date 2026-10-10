@@ -2427,24 +2427,29 @@ const AdminPanel = {
     reader.readAsText(file);
   },
 
-  confirmFactoryReset() {
+  confirmClearSales() {
     App.showConfirmModal(
-      "Erase All System Data?",
-      "Warning: This will permanently wipe all services, categories, sales history, claim orders, inventory logs, and staff attendance. Only the master admin account will be retained. This action cannot be undone.",
+      "Clear All Sales & Claims?",
+      "Warning: This will permanently delete all completed sales transactions and active laundry claim records. Your services, categories, supplies, and staff accounts will remain untouched. This action cannot be undone.",
       async () => {
         try {
-          await StorageManager.resetToDefault();
+          await StorageManager.clearSalesAndClaims();
           Sound.playSuccess();
-          App.showToast("All system data has been erased. Reloading...", "info");
+          App.showToast("All sales and claims history cleared. Reloading...", "info");
           setTimeout(() => location.reload(), 600);
         } catch (e) {
-          // If server call fails, wipe local storage directly
-          StorageManager.save(SEED_DATA);
+          const data = StorageManager.get();
+          data.sales = [];
+          StorageManager.save(data);
           Sound.playSuccess();
-          App.showToast("Local data erased. Reloading...", "info");
+          App.showToast("Sales and claims cleared. Reloading...", "info");
           setTimeout(() => location.reload(), 600);
         }
       }
     );
+  },
+
+  confirmFactoryReset() {
+    this.confirmClearSales();
   }
 };

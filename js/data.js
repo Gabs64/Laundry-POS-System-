@@ -275,6 +275,27 @@ const StorageManager = {
     return JSON.parse(JSON.stringify(SEED_DATA));
   },
 
+  async clearSalesAndClaims() {
+    const data = this.get();
+    data.sales = [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    try {
+      const res = await fetch(getApiUrl("/api/sales/clear"), { method: "POST" });
+      if (res.ok) {
+        const result = await res.json();
+        if (result.data) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
+          return result.data;
+        }
+      }
+    } catch (e) {
+      // Fallback: push updated data directly
+      await this.pushToServer(data).catch(() => {});
+    }
+    return data;
+  },
+
   async addUser(userData) {
     const res = await fetch(getApiUrl("/api/users"), {
       method: "POST",
