@@ -883,22 +883,26 @@
           <div class="form-row">
             <div class="form-group col-8">
               <label for="prod-name">Service / Product Name *</label>
-              <input type="text" id="prod-name" placeholder="e.g. Regular Clothes (Wash-Dry-Fold)" required>
+              <input type="text" id="prod-name" placeholder="e.g. Breeze Power Machine Liquid Detergent" required>
             </div>
             <div class="form-group col-4">
-              <label for="prod-sku">SKU / Service Code</label>
-              <input type="text" id="prod-sku" placeholder="e.g. WDF-001">
+              <label for="prod-brand">Brand Name</label>
+              <input type="text" id="prod-brand" placeholder="e.g. Breeze, Ariel, Tide">
             </div>
           </div>
 
           <div class="form-row">
-            <div class="form-group col-6">
+            <div class="form-group col-4">
+              <label for="prod-sku">SKU / Service Code</label>
+              <input type="text" id="prod-sku" placeholder="e.g. BAR-113034">
+            </div>
+            <div class="form-group col-4">
               <label for="prod-category">Category *</label>
               <select id="prod-category" required>
                 <!-- Populated dynamically -->
               </select>
             </div>
-            <div class="form-group col-6">
+            <div class="form-group col-4">
               <label for="prod-unit">Pricing Unit *</label>
               <select id="prod-unit" required>
                 <option value="kg">Per Kilo (kg)</option>
@@ -916,7 +920,7 @@
           <div class="form-row">
             <div class="form-group col-12">
               <label for="prod-cost">Direct Cost (₱) *</label>
-              <input type="number" id="prod-cost" min="0" step="any" placeholder="75.00" required>
+              <input type="number" id="prod-cost" min="0" step="any" placeholder="15.00" required>
               <input type="hidden" id="prod-price">
             </div>
           </div>
@@ -931,7 +935,12 @@
             </div>
             <div class="form-group col-6" id="prod-barcode-wrap">
               <label for="prod-barcode">Barcode / Scan Code</label>
-              <input type="text" id="prod-barcode" placeholder="e.g. 480009900101">
+              <div class="input-with-button">
+                <input type="text" id="prod-barcode" placeholder="e.g. 8934868113034" onchange="AdminPanel.autoFillFromBarcode(this.value)">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="AdminPanel.autoFillFromBarcode(document.getElementById('prod-barcode').value)" title="Auto-detect brand & item info from barcode">
+                  <i data-lucide="sparkles"></i> Auto-Detect
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1467,6 +1476,9 @@
             <span>✨ Quick Presets (Click to Test):</span>
           </div>
           <div class="barcode-presets-grid">
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('8934868113034')">
+              🫧 Breeze Liquid Detergent (8934868113034)
+            </button>
             <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092330052')">
               🧺 Ariel Sunrise Fresh
             </button>
@@ -1499,15 +1511,18 @@
           <div class="searching-spinner"></div>
           <div class="searching-texts">
             <h5>Searching Online Barcode Registries...</h5>
-            <p>Querying Open Products Facts, Open Food Facts, UPCitemdb, and Laundry Database.</p>
+            <p>Detecting brand, formulation, and product details automatically.</p>
           </div>
         </div>
 
         <!-- Detected Product Result Preview & Auto-Reflect Card -->
         <div class="detected-product-card mt-3" id="barcode-detector-result" style="display:none;">
           <div class="detected-card-header">
-            <span class="badge-source" id="detected-source-badge">Online Registry</span>
-            <span class="detected-barcode-pill" id="detected-barcode-display">4800092330052</span>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span class="badge-source" id="detected-source-badge">Online Registry</span>
+              <span class="badge-brand" id="detected-brand-badge" style="display:none;">Brand: Breeze</span>
+            </div>
+            <span class="detected-barcode-pill" id="detected-barcode-display">8934868113034</span>
           </div>
 
           <div class="detected-card-body">
@@ -1515,9 +1530,15 @@
               <img id="detected-product-image" src="" alt="Product Photo" onerror="this.src='https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80'">
             </div>
             <div class="detected-info-form">
-              <div class="form-group mb-2">
-                <label class="text-xs text-muted">Detected Product Name</label>
-                <input type="text" id="detected-product-name" class="form-control form-control-sm font-bold">
+              <div class="form-row mb-2">
+                <div class="form-group col-7">
+                  <label class="text-xs text-muted">Detected Product Name</label>
+                  <input type="text" id="detected-product-name" class="form-control form-control-sm font-bold">
+                </div>
+                <div class="form-group col-5">
+                  <label class="text-xs text-muted">Detected Brand</label>
+                  <input type="text" id="detected-product-brand" class="form-control form-control-sm font-bold" placeholder="Brand Name" style="color: var(--primary);">
+                </div>
               </div>
 
               <div class="form-row mb-2">

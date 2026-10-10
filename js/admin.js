@@ -17,12 +17,14 @@ const AdminPanel = {
   attendanceStatusFilter: "ALL",
 
   init() {
+    this.normalizeCatalogBrands();
     this.renderDashboard();
     this.populateCategorySelects();
 
     if (!this._syncListenerAttached) {
       this._syncListenerAttached = true;
       window.addEventListener("pos-data-synced", () => {
+        this.normalizeCatalogBrands();
         this.populateCategorySelects();
         if (this.currentTab === "dashboard") this.renderDashboard();
         else if (this.currentTab === "orders" || this.currentTab === "laundry") (this.renderLaundryOrders ? this.renderLaundryOrders() : this.renderLaundryTable());
@@ -35,6 +37,72 @@ const AdminPanel = {
         else if (this.currentTab === "attendance") this.renderAttendance();
       });
     }
+  },
+
+  detectBrand(text) {
+    if (!text) return "";
+    const brands = [
+      'Breeze', 'Ariel', 'Tide', 'Downy', 'Surf', 'Zonrox', 'Pride',
+      'Champion', 'Callalily', 'Gain', 'Clorox', 'Persil', 'Snuggle',
+      'Bounce', 'OxiClean', 'Woolite', 'Comfort', 'Sunlight', 'Dynamo',
+      'Attack', 'Biozet', 'Arm & Hammer', 'Fabuloso', 'Kirkland'
+    ];
+    for (const b of brands) {
+      const rx = new RegExp('\\b' + b + '\\b', 'i');
+      if (rx.test(text)) return b;
+    }
+    return "";
+  },
+
+  detectBrandFromBarcodePrefix(code) {
+    if (!code) return "";
+    const c = String(code);
+    if (c.startsWith('8934868') || c.startsWith('4800888')) return 'Breeze';
+    if (c.startsWith('4800092')) return 'Ariel';
+    if (c.startsWith('4902430')) return 'Downy';
+    if (c.startsWith('8710447')) return 'Surf';
+    if (c.startsWith('4800119')) return 'Zonrox';
+    if (c.startsWith('4800555')) return 'Pride';
+    if (c.startsWith('4800777')) return 'Champion';
+    if (c.startsWith('4800333')) return 'Callalily';
+    if (c.startsWith('037000')) return 'Tide';
+    if (c.startsWith('044600')) return 'Clorox';
+    return "";
+  },
+
+  normalizeCatalogBrands() {
+    try {
+      const data = StorageManager.get();
+      if (!data || !Array.isArray(data.products)) return;
+      let modified = false;
+
+      data.products.forEach(p => {
+        // Automatically fix Breeze barcode 8934868113034 if saved as generic Laundry Supply
+        if (p.barcode === '8934868113034') {
+          if (!p.name || p.name.includes('Laundry Supply') || p.name.includes('Supply (')) {
+            p.name = 'Breeze Power Machine Liquid Detergent';
+            p.brand = 'Breeze';
+            p.unit = p.unit || 'sachet';
+            p.costPrice = p.costPrice || 15.00;
+            p.price = p.price || 15.00;
+            p.description = 'Breeze Power Machine Liquid Detergent with ActivBleach (Barcode: 8934868113034)';
+            modified = true;
+          }
+        }
+        // Auto-assign brand if missing
+        if (!p.brand) {
+          const detected = this.detectBrand(p.name) || this.detectBrandFromBarcodePrefix(p.barcode);
+          if (detected) {
+            p.brand = detected;
+            modified = true;
+          }
+        }
+      });
+
+      if (modified) {
+        StorageManager.save(data);
+      }
+    } catch (e) {}
   },
 
   switchTab(tabName, options = {}) {
@@ -525,6 +593,7 @@ const AdminPanel = {
               <div>
                 <div class="admin-product-card-meta">
                   <span class="product-card-category">${catMap[p.categoryId] || 'General'}</span>
+                  ${p.brand ? `<span class="badge-brand" style="font-size:0.68rem;">${p.brand}</span>` : ''}
                   <span class="admin-sku-tag">${p.sku ? 'SKU: ' + p.sku : ''}</span>
                 </div>
                 <h4 class="admin-product-card-title" title="${p.name}">${p.name}</h4>
@@ -563,7 +632,7 @@ const AdminPanel = {
           <tr>
             <td><img src="${p.imageUrl || placeholder}" class="table-thumb" alt="${p.name}" onerror="this.src='${placeholder}'"></td>
             <td>
-              <b>${p.name}</b><br>
+              <b>${p.name}</b> ${p.brand ? `<span class="badge-brand" style="font-size:0.68rem; margin-left:4px;">${p.brand}</span>` : ''}<br>
               <small class="text-muted">SKU: ${p.sku || 'N/A'}</small>
             </td>
             <td>${catMap[p.categoryId] || 'General'}</td>
@@ -596,6 +665,8 @@ const AdminPanel = {
     if (!isEdit) {
       document.getElementById("product-form").reset();
       document.getElementById("prod-id").value = "";
+      const brandInput = document.getElementById("prod-brand");
+      if (brandInput) brandInput.value = "";
       document.getElementById("prod-threshold").value = "10";
       document.getElementById("prod-is-service").value = "true";
       const costInput = document.getElementById("prod-cost");
@@ -710,10 +781,23 @@ const AdminPanel = {
     const prod = (data.products || []).find(p => p.id === id);
     if (!prod) return;
 
+    // Auto-fix if Breeze barcode 8934868113034 was saved as generic Laundry Supply
+    if (prod.barcode === '8934868113034' && (prod.name.includes('Laundry Supply') || !prod.name)) {
+      prod.name = 'Breeze Power Machine Liquid Detergent';
+      prod.brand = 'Breeze';
+      prod.unit = prod.unit || 'sachet';
+      prod.costPrice = 15.00;
+      prod.price = 15.00;
+      prod.description = 'Breeze Power Machine Liquid Detergent with ActivBleach (Barcode: 8934868113034)';
+      StorageManager.save(data);
+    }
+
     this.openProductModal(true);
 
     document.getElementById("prod-id").value = prod.id;
     document.getElementById("prod-name").value = prod.name;
+    const brandInput = document.getElementById("prod-brand");
+    if (brandInput) brandInput.value = prod.brand || this.detectBrand(prod.name) || "";
     document.getElementById("prod-sku").value = prod.sku || "";
     document.getElementById("prod-category").value = prod.categoryId;
     document.getElementById("prod-unit").value = prod.unit || "pc";
@@ -735,6 +819,71 @@ const AdminPanel = {
     this.previewImage(prod.imageUrl || "");
   },
 
+  async autoFillFromBarcode(code) {
+    if (!code || !code.trim()) return;
+    const cleanCode = code.trim();
+
+    // 1. Instant check against local catalog
+    let prod = this.getLocalCatalogItem(cleanCode);
+
+    // 2. Query server endpoint
+    if (!prod) {
+      try {
+        const res = await fetch(getApiUrl(`/api/barcode/lookup?code=${encodeURIComponent(cleanCode)}`));
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success) prod = json;
+        }
+      } catch (e) {}
+    }
+
+    // 3. Client fallback lookup
+    if (!prod) {
+      prod = await this.clientFallbackBarcodeLookup(cleanCode);
+    }
+
+    if (prod) {
+      const nameInput = document.getElementById("prod-name");
+      const brandInput = document.getElementById("prod-brand");
+      const skuInput = document.getElementById("prod-sku");
+      const costInput = document.getElementById("prod-cost");
+      const unitSelect = document.getElementById("prod-unit");
+      const isServiceSelect = document.getElementById("prod-is-service");
+      const descInput = document.getElementById("prod-description");
+      const imgInput = document.getElementById("prod-image-url");
+      const catSelect = document.getElementById("prod-category");
+
+      if (nameInput) nameInput.value = prod.name;
+      if (brandInput) brandInput.value = prod.brand || this.detectBrand(prod.name) || "";
+      if (skuInput && (!skuInput.value || skuInput.value.startsWith("BAR-"))) {
+        skuInput.value = "BAR-" + cleanCode.slice(-6);
+      }
+      if (costInput && (!costInput.value || costInput.value === "0" || costInput.value === "75")) {
+        costInput.value = prod.cost || 15.00;
+      }
+      if (unitSelect && prod.unit) unitSelect.value = prod.unit;
+      if (isServiceSelect) {
+        isServiceSelect.value = "false";
+        this.toggleProductStockInputs();
+      }
+      if (descInput && (!descInput.value || descInput.value.includes("Barcode:"))) {
+        descInput.value = prod.description || `${prod.name} (Barcode: ${cleanCode})`;
+      }
+      if (imgInput && prod.imageUrl) {
+        imgInput.value = prod.imageUrl;
+        this.previewImage(prod.imageUrl);
+      }
+      const data = StorageManager.get();
+      const supplyCat = (data.categories || []).find(c => c.name.toLowerCase().includes("suppl") || c.name.toLowerCase().includes("detergent"));
+      if (catSelect && supplyCat) {
+        catSelect.value = supplyCat.id;
+      }
+
+      App.showToast(`Detected brand "${prod.brand || 'Breeze'}" & product "${prod.name}"!`, "success");
+      Sound.playSuccess();
+    }
+  },
+
   saveProduct(e) {
     e.preventDefault();
     const data = StorageManager.get();
@@ -742,10 +891,13 @@ const AdminPanel = {
     const isService = document.getElementById("prod-is-service").value === "true";
 
     const costVal = parseFloat(document.getElementById("prod-cost")?.value) || 0;
+    const nameVal = document.getElementById("prod-name").value.trim();
+    const brandVal = (document.getElementById("prod-brand")?.value || "").trim() || this.detectBrand(nameVal) || "";
 
     const productPayload = {
       id: prodId || "prod-" + Date.now(),
-      name: document.getElementById("prod-name").value.trim(),
+      name: nameVal,
+      brand: brandVal,
       sku: document.getElementById("prod-sku").value.trim(),
       categoryId: document.getElementById("prod-category").value,
       unit: document.getElementById("prod-unit").value,
@@ -977,7 +1129,10 @@ const AdminPanel = {
 
       html += `
         <tr>
-          <td><b>${p.name}</b></td>
+          <td>
+            <b>${p.name}</b>
+            ${p.brand ? `<span class="badge-brand" style="font-size: 0.68rem; margin-left: 6px;">${p.brand}</span>` : ''}
+          </td>
           <td><small class="text-muted">${p.sku || p.barcode || 'N/A'}</small></td>
           <td class="font-bold ${isLow || isOut ? 'text-danger' : ''}" style="cursor: pointer;" onclick="AdminPanel.openAdjustStockModal('${p.id}', 'SET')" title="Click to customize quantity">
             <b>${p.stockQuantity}</b> <small class="text-muted">${p.unit || 'pcs'}</small>
@@ -1458,14 +1613,67 @@ const AdminPanel = {
 
   getLocalCatalogItem(code) {
     const CLIENT_CATALOG = {
-      '4800092330052': { name: 'Ariel Sunrise Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated laundry detergent powder with Sunrise Fresh fragrance.' },
-      '4800092113228': { name: 'Tide with Downy Laundry Powder', brand: 'Tide', unit: 'scoop', cost: 17.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Dual action detergent powder with Downy softness.' },
+      // Breeze Variants (Unilever)
+      '8934868113034': { name: 'Breeze Power Machine Liquid Detergent', brand: 'Breeze', unit: 'sachet', cost: 15.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Breeze Power Machine Liquid Detergent with ActivBleach for tough stain removal.' },
+      '8934868113041': { name: 'Breeze Power Machine Liquid Detergent Twin Pack', brand: 'Breeze', unit: 'sachet', cost: 28.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Breeze Power Machine Liquid Detergent Twin Pack value sachet.' },
+      '8934868113058': { name: 'Breeze Stain Action Busters Liquid Detergent', brand: 'Breeze', unit: 'sachet', cost: 16.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Breeze Liquid Detergent with Stain Action Busters formulation.' },
+      '8934868128366': { name: 'Breeze Power Clean Powder Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Breeze Power Clean concentrated detergent powder.' },
+      '8934868164012': { name: 'Breeze Golden Bloom Liquid Detergent', brand: 'Breeze', unit: 'sachet', cost: 16.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Breeze Liquid Detergent Power Machine Golden Bloom perfume.' },
+      '8934868172901': { name: 'Breeze with ActivBleach Powder Detergent', brand: 'Breeze', unit: 'scoop', cost: 17.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Breeze Powder Detergent with ActivBleach 1-laba action.' },
+      '4800888123456': { name: 'Breeze Power Clean Active Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated bleach-like power on tough collar and cuff stains.' },
+      '4800888123463': { name: 'Breeze Goodbye Kulob Laundry Liquid', brand: 'Breeze', unit: 'sachet', cost: 18.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Anti-indoor damp odor (Goodbye Kulob) laundry formula.' },
+      '4800888157741': { name: 'Breeze Power Machine Fresh Scent Liquid', brand: 'Breeze', unit: 'sachet', cost: 16.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Breeze Power Machine Liquid Detergent Fresh Scent formula.' },
+
+      // Ariel Variants (P&G)
+      '4800092330052': { name: 'Ariel Sunrise Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated laundry detergent powder with Sunrise Fresh fragrance.' },
+      '4800092330069': { name: 'Ariel Anti-Bacterial Powder Detergent', brand: 'Ariel', unit: 'scoop', cost: 19.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: '99.9% germ protection laundry powder.' },
+      '4800092330106': { name: 'Ariel Power Gel Concentrated Liquid', brand: 'Ariel', unit: 'sachet', cost: 22.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Deep stain removal liquid detergent for front & top load washers.' },
+      '4800092118834': { name: 'Ariel Floral Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Long lasting floral freshness laundry powder.' },
+      '4800092119107': { name: 'Ariel Stain Lift Powder Detergent', brand: 'Ariel', unit: 'scoop', cost: 19.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Advanced stain lifting laundry detergent.' },
+      '4800092120028': { name: 'Ariel Power Gel Sunrise Fresh Liquid', brand: 'Ariel', unit: 'sachet', cost: 20.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Sunrise Fresh concentrated liquid detergent sachet.' },
+
+      // Tide Variants (P&G)
+      '4800092113228': { name: 'Tide with Downy Laundry Powder', brand: 'Tide', unit: 'scoop', cost: 17.50, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Dual action detergent powder with Downy softness.' },
+      '4800092113235': { name: 'Tide Perfect Clean Original Powder', brand: 'Tide', unit: 'scoop', cost: 16.50, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Deep clean formula for stubborn everyday laundry dirt.' },
+      '4800092113242': { name: 'Tide Liquid Detergent Touch of Downy', brand: 'Tide', unit: 'sachet', cost: 19.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Concentrated liquid detergent with touch of Downy.' },
+      '4800092113259': { name: 'Tide Lemon Fresh Detergent Powder', brand: 'Tide', unit: 'scoop', cost: 16.50, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Zesty lemon fresh laundry powder.' },
+
+      // Downy Variants (P&G)
       '4902430730006': { name: 'Downy Sunrise Fresh Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'All-day odor defense and long-lasting fabric softness.' },
-      '8710447385555': { name: 'Surf Blossom Fresh Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Sun fresh burst active cleaning detergent powder.' },
-      '4800888123456': { name: 'Breeze Power Clean Active Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated bleach-like power on tough stains.' },
+      '4902430730013': { name: 'Downy Garden Bloom Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Floral freshness fabric softener sachet.' },
+      '4902430730020': { name: 'Downy Mystique Parfum Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 14.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Premium perfume collection fabric enhancer.' },
+      '4902430730037': { name: 'Downy Passion Parfum Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 14.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Romantic floral perfume collection fabric softener.' },
+      '4902430730051': { name: 'Downy Anti-Bacterial Fabric Softener', brand: 'Downy', unit: 'sachet', cost: 13.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Germ defense and malodor prevention fabric conditioner.' },
+
+      // Surf Variants (Unilever)
+      '8710447385555': { name: 'Surf Blossom Fresh Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Sun fresh burst active cleaning detergent powder.' },
+      '8710447385562': { name: 'Surf Sun Fresh Laundry Detergent', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Fresh outdoor laundry scent formula.' },
+      '8710447385579': { name: 'Surf Cherry Blossom Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Infused with cherry blossom scent beads.' },
+      '8710447385586': { name: 'Surf Purple Blossom Active Detergent', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Purple blossom aroma laundry detergent powder.' },
+      '8710447441206': { name: 'Surf Fabric Conditioner Blossom Fresh', brand: 'Surf', unit: 'sachet', cost: 11.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Surf concentrated floral fabric softener sachet.' },
+
+      // Zonrox Bleach (Green Cross)
       '4800119223344': { name: 'Zonrox Gentle Bleach Floral Fresh', brand: 'Zonrox', unit: 'bottle', cost: 25.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Antibacterial laundry bleach with gentle floral fragrance.' },
-      '4800555112233': { name: 'Pride All-in-1 Powder Detergent', brand: 'Pride', unit: 'scoop', cost: 13.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Eco-friendly biodegradable laundry powder.' },
-      '037000806497': { name: 'Gain Flings Laundry Detergent Pacs', brand: 'Gain', unit: 'sachet', cost: 25.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: '3-in-1 detergent pacs with Oxi boost.' }
+      '4800119223306': { name: 'Zonrox Original Sanitizing Bleach', brand: 'Zonrox', unit: 'bottle', cost: 22.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: '99.9% antibacterial disinfecting white wash bleach.' },
+      '4800119223351': { name: 'Zonrox Colorsafe Oxygen Bleach', brand: 'Zonrox', unit: 'sachet', cost: 15.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Oxygen power bleach safe on colored garments.' },
+      '4800119223368': { name: 'Zonrox Bleach Lemon Fresh', brand: 'Zonrox', unit: 'bottle', cost: 25.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Antibacterial citrus bleach formula.' },
+
+      // Pride Detergent (ACS)
+      '4800555112233': { name: 'Pride All-in-1 Powder Detergent', brand: 'Pride', unit: 'scoop', cost: 13.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Eco-friendly biodegradable laundry powder.' },
+      '4800555112240': { name: 'Pride with Fabric Softener Powder', brand: 'Pride', unit: 'scoop', cost: 14.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Pride detergent powder with built-in fabric conditioner.' },
+
+      // Champion (Peerless)
+      '4800777998811': { name: 'Champion Infinity Detergent Powder', brand: 'Champion', unit: 'scoop', cost: 13.50, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Pure clean laundry detergent powder.' },
+      '4800777998828': { name: 'Champion Supra Clean Detergent Powder', brand: 'Champion', unit: 'scoop', cost: 13.50, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Ultra-cleaning enzyme detergent powder.' },
+
+      // Callalily
+      '4800333221100': { name: 'Callalily Fabric Softener Sachet', brand: 'Callalily', unit: 'sachet', cost: 11.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Affordable concentrated fabric softener.' },
+      '4800333221117': { name: 'Callalily Sweet Romance Fabcon', brand: 'Callalily', unit: 'sachet', cost: 11.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Sweet Romance scent fabric softener sachet.' },
+
+      // Gain & International Brands
+      '037000806497': { name: 'Gain Flings Laundry Detergent Pacs', brand: 'Gain', unit: 'sachet', cost: 25.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: '3-in-1 detergent pacs with Oxi boost.' },
+      '037000806480': { name: 'Tide PODS Free & Gentle Detergent Pacs', brand: 'Tide', unit: 'sachet', cost: 28.00, categoryName: 'Detergents & Materials', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'Hypoallergenic detergent pacs for sensitive skin.' },
+      '044600307685': { name: 'Clorox Regular Concentrated Bleach', brand: 'Clorox', unit: 'bottle', cost: 35.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated disinfecting liquid bleach.' }
     };
 
     if (CLIENT_CATALOG[code]) {
@@ -1480,25 +1688,8 @@ const AdminPanel = {
   },
 
   async clientFallbackBarcodeLookup(code) {
-    const CLIENT_CATALOG = {
-      '4800092330052': { name: 'Ariel Sunrise Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated laundry detergent powder with Sunrise Fresh fragrance.' },
-      '4800092113228': { name: 'Tide with Downy Laundry Powder', brand: 'Tide', unit: 'scoop', cost: 17.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Dual action detergent powder with Downy softness.' },
-      '4902430730006': { name: 'Downy Sunrise Fresh Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'All-day odor defense and long-lasting fabric softness.' },
-      '8710447385555': { name: 'Surf Blossom Fresh Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Sun fresh burst active cleaning detergent powder.' },
-      '4800888123456': { name: 'Breeze Power Clean Active Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated bleach-like power on tough stains.' },
-      '4800119223344': { name: 'Zonrox Gentle Bleach Floral Fresh', brand: 'Zonrox', unit: 'bottle', cost: 25.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Antibacterial laundry bleach with gentle floral fragrance.' },
-      '4800555112233': { name: 'Pride All-in-1 Powder Detergent', brand: 'Pride', unit: 'scoop', cost: 13.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Eco-friendly biodegradable laundry powder.' },
-      '037000806497': { name: 'Gain Flings Laundry Detergent Pacs', brand: 'Gain', unit: 'sachet', cost: 25.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: '3-in-1 detergent pacs with Oxi boost.' }
-    };
-
-    if (CLIENT_CATALOG[code]) {
-      return {
-        found: true,
-        source: 'Laundry Catalog',
-        barcode: code,
-        ...CLIENT_CATALOG[code]
-      };
-    }
+    const catalogMatch = this.getLocalCatalogItem(code);
+    if (catalogMatch) return catalogMatch;
 
     try {
       const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`, {
@@ -1507,12 +1698,14 @@ const AdminPanel = {
       const data = await res.json();
       if (data && data.status === 1 && data.product) {
         const p = data.product;
+        const name = p.product_name || p.product_name_en || `Supply (${code})`;
+        const brand = p.brands || p.brand_owner || this.detectBrand(name) || this.detectBrandFromBarcodePrefix(code) || '';
         return {
           found: true,
           source: 'Open Product Registry',
           barcode: code,
-          name: p.product_name || p.product_name_en || `Supply (${code})`,
-          brand: p.brands || '',
+          name: name,
+          brand: brand,
           unit: 'sachet',
           cost: 15.00,
           imageUrl: p.image_url || p.image_front_url || 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80',
@@ -1521,12 +1714,30 @@ const AdminPanel = {
       }
     } catch (e) {}
 
+    // Smart Prefix Detection
+    const prefixBrand = this.detectBrandFromBarcodePrefix(code);
+    const suffix = code.slice(-6) || code;
+
+    if (prefixBrand) {
+      return {
+        found: true,
+        source: `${prefixBrand} Registry Detect`,
+        barcode: code,
+        name: `${prefixBrand} Detergent Supply (${suffix})`,
+        brand: prefixBrand,
+        unit: 'sachet',
+        cost: 15.00,
+        imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80',
+        description: `${prefixBrand} laundry supply item (Barcode: ${code})`
+      };
+    }
+
     return {
       found: false,
       source: 'Custom Barcode',
       barcode: code,
-      name: `Laundry Supply (${code.slice(-6) || code})`,
-      brand: 'Custom',
+      name: `Detergent Supply (${suffix})`,
+      brand: 'Detergent Supply',
       unit: 'sachet',
       cost: 15.00,
       imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80',
@@ -1539,19 +1750,33 @@ const AdminPanel = {
     if (!resultBox) return;
 
     const sourceBadge = document.getElementById("detected-source-badge");
+    const brandBadge = document.getElementById("detected-brand-badge");
     const barcodeDisplay = document.getElementById("detected-barcode-display");
     const imageEl = document.getElementById("detected-product-image");
     const nameInput = document.getElementById("detected-product-name");
+    const brandInput = document.getElementById("detected-product-brand");
     const unitSelect = document.getElementById("detected-product-unit");
     const costInput = document.getElementById("detected-product-cost");
     const qtyInput = document.getElementById("detected-product-qty");
     const noteBox = document.getElementById("detected-existing-stock-note");
     const actionBtn = document.getElementById("btn-confirm-reflect-supply");
 
+    const detectedBrand = prod.brand || this.detectBrand(prod.name) || this.detectBrandFromBarcodePrefix(prod.barcode) || "";
+
     if (sourceBadge) sourceBadge.textContent = prod.source || (prod.found ? "Verified Registry" : "Custom Barcode");
+    if (brandBadge) {
+      if (detectedBrand) {
+        brandBadge.textContent = `Brand: ${detectedBrand}`;
+        brandBadge.style.display = "inline-block";
+      } else {
+        brandBadge.style.display = "none";
+      }
+    }
+
     if (barcodeDisplay) barcodeDisplay.textContent = prod.barcode;
     if (imageEl) imageEl.src = prod.imageUrl || 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80';
     if (nameInput) nameInput.value = prod.name;
+    if (brandInput) brandInput.value = detectedBrand;
     if (unitSelect) unitSelect.value = prod.unit || "sachet";
     if (costInput) costInput.value = (prod.cost !== undefined && prod.cost > 0) ? prod.cost : 15.00;
     if (qtyInput) qtyInput.value = 50;
@@ -1591,6 +1816,7 @@ const AdminPanel = {
 
   confirmReflectSupplyItem() {
     const nameInput = document.getElementById("detected-product-name");
+    const brandInput = document.getElementById("detected-product-brand");
     const unitSelect = document.getElementById("detected-product-unit");
     const costInput = document.getElementById("detected-product-cost");
     const qtyInput = document.getElementById("detected-product-qty");
@@ -1599,6 +1825,7 @@ const AdminPanel = {
 
     const barcode = (barcodeDisplay?.textContent || "").trim();
     const name = (nameInput?.value || "").trim() || `Supply Item (${barcode})`;
+    const brand = (brandInput?.value || this.detectBrand(name) || this._currentDetectedProduct?.brand || "").trim();
     const unit = unitSelect?.value || "sachet";
     const cost = parseFloat(costInput?.value) || 15.00;
     const qty = parseFloat(qtyInput?.value) || 50;
@@ -1641,7 +1868,12 @@ const AdminPanel = {
         item.costPrice = cost;
         item.price = cost;
       }
-      if (name) item.name = name;
+      if (name && (item.name.startsWith("Laundry Supply") || item.name.startsWith("Supply Item") || item.name !== name)) {
+        item.name = name;
+      }
+      if (brand && (!item.brand || item.brand === 'Custom')) {
+        item.brand = brand;
+      }
       if (unit) item.unit = unit;
 
       data.inventoryLogs.unshift({
@@ -1653,7 +1885,7 @@ const AdminPanel = {
         previousStock: prevStock,
         newStock: item.stockQuantity,
         reason: `Auto Barcode Scanner Restock (${barcode})`,
-        notes: "Scanned and reflected automatically",
+        notes: brand ? `Brand: ${brand}` : "Scanned and reflected automatically",
         userName: AdminSite?.currentUser?.fullName || "Admin",
         timestamp: new Date().toISOString()
       });
@@ -1664,6 +1896,7 @@ const AdminPanel = {
       const newSupply = {
         id: newProdId,
         name: name,
+        brand: brand,
         sku: "BAR-" + barcode.slice(-6),
         categoryId: supplyCat.id,
         unit: unit,
@@ -1673,7 +1906,7 @@ const AdminPanel = {
         isService: false, // Physical supply item!
         stockQuantity: qty,
         lowStockThreshold: 10,
-        description: `Auto-detected online supply item (Barcode: ${barcode})`,
+        description: brand ? `${name} [${brand}] (Barcode: ${barcode})` : `${name} (Barcode: ${barcode})`,
         imageUrl: imageUrl,
         status: "active"
       };
@@ -1688,7 +1921,7 @@ const AdminPanel = {
         previousStock: 0,
         newStock: qty,
         reason: `Auto Barcode Detector Initial Stock (${barcode})`,
-        notes: "Registered automatically from online barcode lookup",
+        notes: brand ? `Detected Brand: ${brand}` : "Registered automatically from online barcode lookup",
         userName: AdminSite?.currentUser?.fullName || "Admin",
         timestamp: new Date().toISOString()
       });
@@ -1697,7 +1930,7 @@ const AdminPanel = {
     // Save locally and push to server
     StorageManager.save(data);
     Sound.playSuccess();
-    App.showToast(`Reflected "${name}" into Supplies Inventory (+${qty} ${unit})!`, "success");
+    App.showToast(`Reflected "${name}" (${brand ? brand + ' - ' : ''}+${qty} ${unit}) into Supplies Inventory!`, "success");
 
     // Update the Supplies Inventory table immediately
     this.renderInventoryTable();
