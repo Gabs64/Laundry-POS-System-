@@ -25,11 +25,11 @@ const AdminPanel = {
       window.addEventListener("pos-data-synced", () => {
         this.populateCategorySelects();
         if (this.currentTab === "dashboard") this.renderDashboard();
-        else if (this.currentTab === "orders") this.renderLaundryOrders();
-        else if (this.currentTab === "catalog") this.renderProducts();
+        else if (this.currentTab === "orders" || this.currentTab === "laundry") (this.renderLaundryOrders ? this.renderLaundryOrders() : this.renderLaundryTable());
+        else if (this.currentTab === "catalog" || this.currentTab === "products") (this.renderProducts ? this.renderProducts() : this.renderProductsTable());
         else if (this.currentTab === "categories") this.renderCategories();
-        else if (this.currentTab === "inventory") this.renderInventory();
-        else if (this.currentTab === "sales") this.renderSalesHistory();
+        else if (this.currentTab === "inventory") (this.renderInventory ? this.renderInventory() : this.renderInventoryTable());
+        else if (this.currentTab === "sales") (this.renderSalesHistory ? this.renderSalesHistory() : this.renderSalesTable());
         else if (this.currentTab === "reports") this.renderReports();
         else if (this.currentTab === "cashiers") this.renderUsers();
         else if (this.currentTab === "attendance") this.renderAttendance();
@@ -1145,19 +1145,21 @@ const AdminPanel = {
   _barcodeHtml5QrCode: null,
   _barcodeCameraActive: false,
   _barcodeCameraFacingMode: "environment",
+  _mediaStream: null,
+  _barcodeScanInterval: null,
+  _isScanLocked: false,
   _currentDetectedProduct: null,
-  _lastScanTime: 0,
-  _lastScannedCode: "",
 
   openBarcodeDetectorModal() {
     const modal = document.getElementById("modal-barcode-detector");
     if (!modal) return;
+    this._isScanLocked = false;
     modal.classList.add("active");
 
     const input = document.getElementById("barcode-detector-input");
     if (input) {
       input.value = "";
-      setTimeout(() => input.focus(), 250);
+      setTimeout(() => input.focus(), 200);
     }
 
     const resultBox = document.getElementById("barcode-detector-result");
@@ -1172,8 +1174,24 @@ const AdminPanel = {
 
   closeBarcodeDetectorModal() {
     this.stopBarcodeCamera();
+    this._isScanLocked = false;
     const modal = document.getElementById("modal-barcode-detector");
     if (modal) modal.classList.remove("active");
+  },
+
+  resetForNextScan() {
+    this._isScanLocked = false;
+    const input = document.getElementById("barcode-detector-input");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    const resultBox = document.getElementById("barcode-detector-result");
+    if (resultBox) resultBox.style.display = "none";
+
+    if (this._barcodeCameraActive) {
+      this.updateCameraStatusUI(true, "Scanning Active");
+    }
   },
 
   updateCameraStatusUI(isActive, text = null) {
@@ -1214,28 +1232,78 @@ const AdminPanel = {
   },
 
   async startBarcodeCamera() {
+    this._isScanLocked = false;
+    this.updateCameraStatusUI(true, "Starting camera...");
+
+    // 1. Try Native BarcodeDetector API (Built into Chrome/Edge, GPU-accelerated, zero CPU lag)
+    if ('BarcodeDetector' in window) {
+      try {
+        const supportedFormats = await BarcodeDetector.getSupportedFormats().catch(() => ['ean_13', 'upc_a', 'code_128']);
+        const detector = new BarcodeDetector({ formats: supportedFormats });
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: this._barcodeCameraFacingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        this._mediaStream = stream;
+        const nativeVideo = document.getElementById("barcode-native-video");
+        if (nativeVideo) {
+          nativeVideo.srcObject = stream;
+          nativeVideo.style.display = "block";
+          await nativeVideo.play();
+
+          // Throttled detection loop (every 220ms - prevents CPU freeze)
+          if (this._barcodeScanInterval) clearInterval(this._barcodeScanInterval);
+          this._barcodeScanInterval = setInterval(async () => {
+            if (this._isScanLocked || !this._barcodeCameraActive || nativeVideo.readyState < 2) return;
+            try {
+              const barcodes = await detector.detect(nativeVideo);
+              if (barcodes && barcodes.length > 0) {
+                const rawValue = barcodes[0].rawValue;
+                if (rawValue) {
+                  this.onBarcodeDetected(rawValue);
+                }
+              }
+            } catch (detErr) {}
+          }, 220);
+
+          this._barcodeCameraActive = true;
+          this.updateCameraStatusUI(true, "Scanning Live");
+          return;
+        }
+      } catch (nativeErr) {
+        console.warn("Native BarcodeDetector init fallback:", nativeErr);
+      }
+    }
+
+    // 2. Fallback to Html5Qrcode library
     const streamContainer = document.getElementById("barcode-camera-stream");
     if (!streamContainer) return;
+    streamContainer.innerHTML = "";
 
     if (typeof Html5Qrcode === "undefined") {
-      App.showToast("Barcode scanner library is loading, please try again in a moment.", "info");
+      this._barcodeCameraActive = false;
+      this.updateCameraStatusUI(false, "Camera Library Unavailable");
+      App.showToast("Camera scanner library unavailable. You can type or use a USB scanner.", "warning");
       return;
     }
 
     try {
-      this.updateCameraStatusUI(true, "Starting camera...");
-
       if (!this._barcodeHtml5QrCode) {
         this._barcodeHtml5QrCode = new Html5Qrcode("barcode-camera-stream");
       }
 
       const config = {
-        fps: 12,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const width = Math.min(viewfinderWidth * 0.85, 300);
-          const height = Math.min(viewfinderHeight * 0.65, 150);
-          return { width: Math.floor(width), height: Math.floor(height) };
-        },
+        fps: 8,
+        qrbox: (viewfinderWidth, viewfinderHeight) => ({
+          width: Math.floor(Math.min(viewfinderWidth * 0.85, 300)),
+          height: Math.floor(Math.min(viewfinderHeight * 0.65, 150))
+        }),
         aspectRatio: 1.777778
       };
 
@@ -1243,7 +1311,9 @@ const AdminPanel = {
         { facingMode: this._barcodeCameraFacingMode },
         config,
         (decodedText) => {
-          this.onBarcodeDetected(decodedText);
+          if (!this._isScanLocked) {
+            this.onBarcodeDetected(decodedText);
+          }
         },
         () => {}
       );
@@ -1251,7 +1321,7 @@ const AdminPanel = {
       this._barcodeCameraActive = true;
       this.updateCameraStatusUI(true, "Scanning Live");
     } catch (err) {
-      console.warn("Camera start error:", err);
+      console.warn("Camera fallback start error:", err);
       this._barcodeCameraActive = false;
       this.updateCameraStatusUI(false, "Camera Access Denied / Unavailable");
       App.showToast("Camera access unavailable. You can enter or scan barcodes with a USB scanner directly.", "warning");
@@ -1259,13 +1329,32 @@ const AdminPanel = {
   },
 
   async stopBarcodeCamera() {
+    if (this._barcodeScanInterval) {
+      clearInterval(this._barcodeScanInterval);
+      this._barcodeScanInterval = null;
+    }
+
+    if (this._mediaStream) {
+      this._mediaStream.getTracks().forEach(t => t.stop());
+      this._mediaStream = null;
+    }
+
+    const nativeVideo = document.getElementById("barcode-native-video");
+    if (nativeVideo) {
+      nativeVideo.pause();
+      nativeVideo.srcObject = null;
+      nativeVideo.style.display = "none";
+    }
+
     if (this._barcodeHtml5QrCode && this._barcodeCameraActive) {
       try {
-        await this._barcodeHtml5QrCode.stop();
-      } catch (e) {
-        console.warn("Camera stop error:", e);
-      }
+        await this._barcodeHtml5QrCode.stop().catch(() => {});
+      } catch (e) {}
     }
+
+    const streamContainer = document.getElementById("barcode-camera-stream");
+    if (streamContainer) streamContainer.innerHTML = "";
+
     this._barcodeCameraActive = false;
     this.updateCameraStatusUI(false, "Camera Standby");
   },
@@ -1277,17 +1366,13 @@ const AdminPanel = {
   },
 
   onBarcodeDetected(code) {
-    if (!code) return;
+    if (!code || this._isScanLocked) return;
     const cleanCode = String(code).trim();
     if (!cleanCode) return;
 
-    // Prevent duplicate rapid-fire scans in under 1.8 seconds
-    const now = Date.now();
-    if (this._lastScanTime && (now - this._lastScanTime < 1800) && this._lastScannedCode === cleanCode) {
-      return;
-    }
-    this._lastScanTime = now;
-    this._lastScannedCode = cleanCode;
+    // Immediately lock to prevent rapid-fire freezing
+    this._isScanLocked = true;
+    this.updateCameraStatusUI(true, `Detected: ${cleanCode}`);
 
     Sound.playSuccess();
     const input = document.getElementById("barcode-detector-input");
@@ -1297,6 +1382,7 @@ const AdminPanel = {
   },
 
   testScanPreset(code) {
+    this._isScanLocked = true;
     const input = document.getElementById("barcode-detector-input");
     if (input) input.value = code;
     this.searchBarcodeOnline(code);
@@ -1309,6 +1395,7 @@ const AdminPanel = {
       App.showToast("Please enter or scan a barcode first.", "warning");
       return;
     }
+    this._isScanLocked = true;
     this.searchBarcodeOnline(code);
   },
 
@@ -1320,23 +1407,33 @@ const AdminPanel = {
 
     let productDetails = null;
 
-    try {
-      // 1. Primary lookup via server endpoint
-      const res = await fetch(getApiUrl(`/api/barcode/lookup?code=${encodeURIComponent(code)}`), {
-        signal: AbortSignal.timeout(4000)
-      }).catch(() => null);
+    // 1. Instant 0ms response from local catalog
+    productDetails = this.getLocalCatalogItem(code);
 
-      if (res && res.ok) {
-        const json = await res.json().catch(() => null);
-        if (json && json.success) {
-          productDetails = json;
+    // 2. Query server endpoint with safe 3.5s timeout
+    if (!productDetails) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+        const res = await fetch(getApiUrl(`/api/barcode/lookup?code=${encodeURIComponent(code)}`), {
+          signal: controller.signal
+        }).catch(() => null);
+
+        clearTimeout(timeoutId);
+
+        if (res && res.ok) {
+          const json = await res.json().catch(() => null);
+          if (json && json.success) {
+            productDetails = json;
+          }
         }
+      } catch (e) {
+        console.warn("Server barcode lookup error:", e);
       }
-    } catch (e) {
-      console.warn("Server barcode lookup error:", e);
     }
 
-    // 2. Client fallback if server lookup not available
+    // 3. Fallback client lookup if server lookup unavailable
     if (!productDetails) {
       productDetails = await this.clientFallbackBarcodeLookup(code);
     }
@@ -1345,6 +1442,7 @@ const AdminPanel = {
 
     if (!productDetails) {
       App.showToast(`No details found for barcode ${code}. You can enter details manually.`, "info");
+      this._isScanLocked = false;
       return;
     }
 
@@ -1356,6 +1454,29 @@ const AdminPanel = {
     if (autoReflect) {
       this.confirmReflectSupplyItem();
     }
+  },
+
+  getLocalCatalogItem(code) {
+    const CLIENT_CATALOG = {
+      '4800092330052': { name: 'Ariel Sunrise Fresh Detergent Powder', brand: 'Ariel', unit: 'scoop', cost: 18.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated laundry detergent powder with Sunrise Fresh fragrance.' },
+      '4800092113228': { name: 'Tide with Downy Laundry Powder', brand: 'Tide', unit: 'scoop', cost: 17.50, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Dual action detergent powder with Downy softness.' },
+      '4902430730006': { name: 'Downy Sunrise Fresh Fabric Conditioner', brand: 'Downy', unit: 'sachet', cost: 12.00, categoryName: 'Fabric Softener / Fabcon', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: 'All-day odor defense and long-lasting fabric softness.' },
+      '8710447385555': { name: 'Surf Blossom Fresh Detergent Powder', brand: 'Surf', unit: 'scoop', cost: 14.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Sun fresh burst active cleaning detergent powder.' },
+      '4800888123456': { name: 'Breeze Power Clean Active Detergent', brand: 'Breeze', unit: 'scoop', cost: 16.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Concentrated bleach-like power on tough stains.' },
+      '4800119223344': { name: 'Zonrox Gentle Bleach Floral Fresh', brand: 'Zonrox', unit: 'bottle', cost: 25.00, categoryName: 'Bleach & Additives', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Antibacterial laundry bleach with gentle floral fragrance.' },
+      '4800555112233': { name: 'Pride All-in-1 Powder Detergent', brand: 'Pride', unit: 'scoop', cost: 13.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80', description: 'Eco-friendly biodegradable laundry powder.' },
+      '037000806497': { name: 'Gain Flings Laundry Detergent Pacs', brand: 'Gain', unit: 'sachet', cost: 25.00, categoryName: 'Detergent / Supplies', imageUrl: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80', description: '3-in-1 detergent pacs with Oxi boost.' }
+    };
+
+    if (CLIENT_CATALOG[code]) {
+      return {
+        found: true,
+        source: 'Laundry Catalog',
+        barcode: code,
+        ...CLIENT_CATALOG[code]
+      };
+    }
+    return null;
   },
 
   async clientFallbackBarcodeLookup(code) {

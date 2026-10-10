@@ -255,9 +255,7 @@ function saveServerData(data) {
 
     cachedData = data;
     lastUpdatedTimestamp = Date.now();
-    const tempFile = DB_FILE + '.tmp.' + Date.now();
-    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
-    fs.renameSync(tempFile, DB_FILE);
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (e) {
     console.error('Error saving DB file:', e);

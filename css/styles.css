@@ -4735,9 +4735,15 @@ img {
 /* =========================================================
    AUTO BARCODE DETECTOR & ONLINE LOOKUP MODAL (ADMIN)
    ========================================================= */
+#modal-barcode-detector {
+  z-index: 10005;
+}
+
 .modal-barcode-detector-dialog {
   max-width: 660px;
   width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-icon-badge {

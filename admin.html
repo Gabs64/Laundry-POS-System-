@@ -1382,6 +1382,8 @@
         </div>
       </form>
     </div>
+  </div>
+
   <!-- AUTO BARCODE DETECTOR & ONLINE LOOKUP MODAL -->
   <div id="modal-barcode-detector" class="modal-backdrop">
     <div class="modal-dialog modal-barcode-detector-dialog">
@@ -1419,6 +1421,7 @@
           </div>
 
           <div class="camera-viewport-wrapper" id="camera-viewport-wrapper">
+            <video id="barcode-native-video" playsinline muted autoplay style="display:none; width:100%; height:100%; object-fit:cover;"></video>
             <div id="barcode-camera-stream" class="barcode-camera-stream"></div>
             <!-- Laser overlay line animation -->
             <div class="scanner-laser-line" id="scanner-laser-line" style="display:none;"></div>
@@ -1554,9 +1557,12 @@
             </div>
           </div>
 
-          <div class="detected-card-footer mt-3">
-            <button type="button" class="btn btn-success btn-block" id="btn-confirm-reflect-supply" onclick="AdminPanel.confirmReflectSupplyItem()">
+          <div class="detected-card-footer mt-3" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-success" style="flex: 1;" id="btn-confirm-reflect-supply" onclick="AdminPanel.confirmReflectSupplyItem()">
               <i data-lucide="check-circle-2"></i> Reflect into Supplies Inventory Now
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="AdminPanel.resetForNextScan()">
+              <i data-lucide="scan-barcode"></i> Scan Next Item
             </button>
           </div>
         </div>
