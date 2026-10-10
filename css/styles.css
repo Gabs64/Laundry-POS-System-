@@ -5062,6 +5062,27 @@ img {
   min-width: 0;
 }
 
+.barcode-scanner-bar {
+  position: relative;
+  width: 100%;
+}
+
+.barcode-scanner-bar input {
+  width: 100%;
+  font-size: 0.95rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface);
+  transition: all 0.2s ease;
+}
+
+.barcode-scanner-bar input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  outline: none;
+}
+
 .qty-stepper-row {
   display: flex;
   gap: 0.35rem;
@@ -5069,8 +5090,11 @@ img {
 }
 
 .qty-stepper-row input {
-  width: 80px;
+  flex: 1;
+  max-width: 150px;
   text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .inventory-status-pill {
