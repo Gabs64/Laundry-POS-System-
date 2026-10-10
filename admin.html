@@ -422,6 +422,9 @@
               </div>
             </div>
             <div class="toolbar-right">
+              <button type="button" class="btn btn-primary" onclick="AdminPanel.openAddSupplyModal()">
+                <i data-lucide="package-plus"></i> Add Supply / Detergent
+              </button>
               <button type="button" class="btn btn-secondary" onclick="AdminPanel.openInventoryLogsModal()">
                 <i data-lucide="clipboard-list"></i> Supplies Audit Log
               </button>
@@ -832,10 +835,10 @@
                   </div>
 
                   <div class="data-action-box danger-box">
-                    <h5>Reset Demo Laundry Data</h5>
-                    <p>Clear custom modifications and restore original fresh Philippine Laundry catalog & orders.</p>
+                    <h5>Erase All Data</h5>
+                    <p>Permanently wipe all laundry services, categories, sales, claims, attendance, and inventory logs.</p>
                     <button class="btn btn-danger mt-2" onclick="AdminPanel.confirmFactoryReset()">
-                      <i data-lucide="rotate-ccw"></i> Reset to Default Demo
+                      <i data-lucide="trash-2"></i> Erase All Data
                     </button>
                   </div>
                 </div>
@@ -930,11 +933,11 @@
           <div class="form-row" id="prod-stock-inputs-row" style="display:none;">
             <div class="form-group col-6">
               <label for="prod-stock">Current Stock Quantity</label>
-              <input type="number" id="prod-stock" min="0" step="1" value="100">
+              <input type="number" id="prod-stock" min="0" step="any" value="100">
             </div>
             <div class="form-group col-6">
               <label for="prod-threshold">Low Stock Alert Threshold</label>
-              <input type="number" id="prod-threshold" min="0" step="1" value="10">
+              <input type="number" id="prod-threshold" min="0" step="any" value="10">
             </div>
           </div>
 
@@ -956,14 +959,15 @@
             <div class="preset-images-picker">
               <span>Presets:</span>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('wash')">🧺 Wash & Fold</button>
-              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('suit')">👔 Dry Clean
-                Suit</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('suit')">👔 Dry Clean Suit</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('barong')">🇵🇭 Barong</button>
-              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('press')">♨️ Steam
-                Press</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('press')">♨️ Steam Press</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('duvet')">🛏️ Comforter</button>
               <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('shoes')">👟 Sneakers</button>
-              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('fabcon')">🧴 Fabcon</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('powder_detergent')">🧼 Powder Detergent</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('liquid_detergent')">🧴 Liquid Detergent</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('fabcon')">🌸 Fabcon</button>
+              <button type="button" class="img-chip" onclick="AdminPanel.setPresetImage('bleach')">✨ Bleach Booster</button>
             </div>
           </div>
 
@@ -1035,8 +1039,16 @@
                   <i data-lucide="hash"></i> Exact Count (=)
                 </button>
               </div>
-              <input type="number" id="adjust-qty" min="1" step="1" value="10" oninput="AdminPanel.recalcNewStock()"
+              <input type="number" id="adjust-qty" min="0" step="any" value="10" oninput="AdminPanel.recalcNewStock()"
                 required>
+            </div>
+            <div class="quick-stock-chips mt-2" style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.quickAdjustQty(10)">+10</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.quickAdjustQty(25)">+25</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.quickAdjustQty(50)">+50</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.quickAdjustQty(100)">+100</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.quickSetExact(50)">Set 50</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="AdminPanel.quickSetExact(100)">Set 100</button>
             </div>
           </div>
 

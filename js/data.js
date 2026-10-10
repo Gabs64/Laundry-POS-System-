@@ -92,11 +92,99 @@ const StorageManager = {
         }
       }
 
+      if (this.checkAutoDisableUsers(parsed)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+
       return parsed;
     } catch (e) {
       console.error("Storage load error:", e);
       return JSON.parse(JSON.stringify(SEED_DATA));
     }
+  },
+
+  checkAutoDisableUsers(data) {
+    if (!data || !Array.isArray(data.users)) return false;
+    let modified = false;
+    const now = new Date();
+    const currentIso = now.toISOString();
+    const currentMinutesOfDay = now.getHours() * 60 + now.getMinutes();
+
+    const formatTime12 = (tStr) => {
+      try {
+        const parts = (tStr || '00:00').split(':').map(Number);
+        const h = parts[0];
+        const m = parts[1] || 0;
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+      } catch (e) {
+        return tStr;
+      }
+    };
+
+    data.users.forEach(u => {
+      if (u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN') return;
+      const isEnabled = u.autoDisableEnabled === true || u.autoDisableEnabled === 'true';
+
+      if (isEnabled) {
+        if (u.autoDisableType === 'datetime' || (!u.autoDisableType && u.autoDisableAt)) {
+          if (u.status === 'disabled') return;
+          if (u.autoDisableAt) {
+            const disableTime = new Date(u.autoDisableAt).getTime();
+            if (!isNaN(disableTime) && Date.now() >= disableTime) {
+              u.status = 'disabled';
+              u.activeSessionId = null;
+              u.lastHeartbeat = null;
+              u.isOnline = false;
+              u.autoDisabledAt = currentIso;
+              u.autoDisableReason = `Scheduled auto-disable time reached (${new Date(u.autoDisableAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })})`;
+              modified = true;
+            }
+          }
+        } else if (u.autoDisableType === 'daily') {
+          const dailyInStr = u.autoDisableDailyIn || '08:00';
+          const dailyOutStr = u.autoDisableDailyOut || u.autoDisableDailyTime || '17:00';
+
+          const inParts = dailyInStr.split(':').map(Number);
+          const outParts = dailyOutStr.split(':').map(Number);
+
+          const inMinutes = (inParts[0] || 0) * 60 + (inParts[1] || 0);
+          const outMinutes = (outParts[0] || 0) * 60 + (outParts[1] || 0);
+
+          let isWithinShift = false;
+          if (inMinutes <= outMinutes) {
+            isWithinShift = currentMinutesOfDay >= inMinutes && currentMinutesOfDay < outMinutes;
+          } else {
+            // Overnight shift (e.g. 22:00 to 06:00)
+            isWithinShift = currentMinutesOfDay >= inMinutes || currentMinutesOfDay < outMinutes;
+          }
+
+          const shiftLabel = `${formatTime12(dailyInStr)} - ${formatTime12(dailyOutStr)}`;
+
+          if (isWithinShift) {
+            if (u.status === 'disabled' && (!u.autoDisableReason || u.autoDisableReason.toLowerCase().includes('daily') || u.autoDisableReason.toLowerCase().includes('shift'))) {
+              u.status = 'active';
+              u.autoDisabledAt = null;
+              u.autoDisableReason = null;
+              modified = true;
+            }
+          } else {
+            if (u.status !== 'disabled') {
+              u.status = 'disabled';
+              u.activeSessionId = null;
+              u.lastHeartbeat = null;
+              u.isOnline = false;
+              u.autoDisabledAt = currentIso;
+              u.autoDisableReason = `Outside daily shift window (${shiftLabel})`;
+              modified = true;
+            }
+          }
+        }
+      }
+    });
+
+    return modified;
   },
 
   save(data) {

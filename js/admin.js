@@ -633,6 +633,33 @@ const AdminPanel = {
     }
   },
 
+  openAddSupplyModal() {
+    this.openProductModal(false);
+    const title = document.getElementById("product-modal-title");
+    if (title) title.textContent = "Add Supply / Detergent";
+
+    const isServiceSelect = document.getElementById("prod-is-service");
+    if (isServiceSelect) isServiceSelect.value = "false";
+    this.toggleProductStockInputs();
+
+    // Default to supplies category if available
+    const data = StorageManager.get();
+    const supplyCat = (data.categories || []).find(c => c.name.toLowerCase().includes("suppl") || c.name.toLowerCase().includes("detergent"));
+    if (supplyCat) {
+      const catSelect = document.getElementById("prod-category");
+      if (catSelect) catSelect.value = supplyCat.id;
+    }
+
+    const unitSelect = document.getElementById("prod-unit");
+    if (unitSelect) unitSelect.value = "scoop";
+
+    const nameInput = document.getElementById("prod-name");
+    if (nameInput) {
+      nameInput.placeholder = "e.g. Commercial Powder Detergent / Downy Floral";
+      nameInput.focus();
+    }
+  },
+
   setPresetImage(key) {
     const presets = {
       wash: "https://images.unsplash.com/photo-1545173168-9f1947eebb7f?auto=format&fit=crop&w=400&q=80",
@@ -641,8 +668,34 @@ const AdminPanel = {
       press: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=400&q=80",
       duvet: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=400&q=80",
       shoes: "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=400&q=80",
-      fabcon: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80"
+      powder_detergent: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80",
+      liquid_detergent: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80",
+      fabcon: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=400&q=80",
+      bleach: "https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?auto=format&fit=crop&w=400&q=80"
     };
+
+    const isSupplyPreset = ['powder_detergent', 'liquid_detergent', 'fabcon', 'bleach'].includes(key);
+    if (isSupplyPreset) {
+      const isServiceSelect = document.getElementById("prod-is-service");
+      if (isServiceSelect) isServiceSelect.value = "false";
+      this.toggleProductStockInputs();
+
+      const unitSelect = document.getElementById("prod-unit");
+      if (unitSelect) {
+        if (key === 'powder_detergent') unitSelect.value = 'scoop';
+        else if (key === 'liquid_detergent') unitSelect.value = 'sachet';
+        else if (key === 'fabcon') unitSelect.value = 'sachet';
+        else if (key === 'bleach') unitSelect.value = 'scoop';
+      }
+
+      const nameInput = document.getElementById("prod-name");
+      if (nameInput && !nameInput.value.trim()) {
+        if (key === 'powder_detergent') nameInput.value = 'Commercial Laundry Powder Detergent';
+        else if (key === 'liquid_detergent') nameInput.value = 'Concentrated Liquid Detergent';
+        else if (key === 'fabcon') nameInput.value = 'Fabric Conditioner (Floral Breeze)';
+        else if (key === 'bleach') nameInput.value = 'Color-Safe Oxygen Bleach Booster';
+      }
+    }
 
     const url = presets[key] || "";
     const input = document.getElementById("prod-image-url");
@@ -700,8 +753,8 @@ const AdminPanel = {
       price: costVal,
       costPrice: costVal,
       isService: isService,
-      stockQuantity: isService ? 999 : (parseInt(document.getElementById("prod-stock").value) || 0),
-      lowStockThreshold: parseInt(document.getElementById("prod-threshold").value) || 10,
+      stockQuantity: isService ? 999 : (parseFloat(document.getElementById("prod-stock").value) || 0),
+      lowStockThreshold: parseFloat(document.getElementById("prod-threshold").value) || 10,
       description: document.getElementById("prod-description").value.trim(),
       imageUrl: document.getElementById("prod-image-url").value.trim(),
       status: document.getElementById("prod-status").value
@@ -926,13 +979,21 @@ const AdminPanel = {
         <tr>
           <td><b>${p.name}</b></td>
           <td><small class="text-muted">${p.sku || p.barcode || 'N/A'}</small></td>
-          <td class="font-bold ${isLow || isOut ? 'text-danger' : ''}">${p.stockQuantity} ${p.unit || 'pcs'}</td>
+          <td class="font-bold ${isLow || isOut ? 'text-danger' : ''}" style="cursor: pointer;" onclick="AdminPanel.openAdjustStockModal('${p.id}', 'SET')" title="Click to customize quantity">
+            <b>${p.stockQuantity}</b> <small class="text-muted">${p.unit || 'pcs'}</small>
+            <i data-lucide="edit-3" style="width:12px; height:12px; vertical-align:middle; opacity:0.6; margin-left:4px;"></i>
+          </td>
           <td>${p.lowStockThreshold || 10}</td>
           <td>${statusBadge}</td>
           <td class="text-right">
-            <button class="btn btn-secondary btn-sm" onclick="AdminPanel.openAdjustStockModal('${p.id}')">
-              <i data-lucide="sliders"></i> Adjust Stock
-            </button>
+            <div class="table-actions-flex" style="justify-content: flex-end; gap: 6px;">
+              <button class="btn btn-secondary btn-sm" onclick="AdminPanel.openAdjustStockModal('${p.id}')" title="Adjust Stock">
+                <i data-lucide="sliders"></i> Adjust
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="AdminPanel.editProduct('${p.id}')" title="Edit Supply Info">
+                <i data-lucide="edit-2"></i> Edit
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -942,7 +1003,7 @@ const AdminPanel = {
     if (window.lucide) lucide.createIcons();
   },
 
-  openAdjustStockModal(productId) {
+  openAdjustStockModal(productId, defaultType = "ADD") {
     const data = StorageManager.get();
     const prod = (data.products || []).find(p => p.id === productId);
     if (!prod) return;
@@ -950,11 +1011,28 @@ const AdminPanel = {
     document.getElementById("adjust-prod-id").value = prod.id;
     document.getElementById("adjust-product-name").textContent = prod.name;
     document.getElementById("adjust-current-stock").textContent = prod.stockQuantity;
-    document.getElementById("adjust-qty").value = "10";
-    this.setAdjustType("ADD");
+    this.setAdjustType(defaultType);
+    if (defaultType === "SET") {
+      document.getElementById("adjust-qty").value = prod.stockQuantity;
+    } else {
+      document.getElementById("adjust-qty").value = "10";
+    }
+    this.recalcNewStock();
 
     const modal = document.getElementById("modal-inventory-adjust");
     if (modal) modal.classList.add("active");
+  },
+
+  quickAdjustQty(val) {
+    this.setAdjustType("ADD");
+    document.getElementById("adjust-qty").value = val;
+    this.recalcNewStock();
+  },
+
+  quickSetExact(val) {
+    this.setAdjustType("SET");
+    document.getElementById("adjust-qty").value = val;
+    this.recalcNewStock();
   },
 
   closeAdjustStockModal() {
@@ -971,8 +1049,8 @@ const AdminPanel = {
   },
 
   recalcNewStock() {
-    const currentStock = parseInt(document.getElementById("adjust-current-stock").textContent) || 0;
-    const qty = parseInt(document.getElementById("adjust-qty").value) || 0;
+    const currentStock = parseFloat(document.getElementById("adjust-current-stock").textContent) || 0;
+    const qty = parseFloat(document.getElementById("adjust-qty").value) || 0;
     let newStock = currentStock;
 
     if (this.adjustType === "ADD") newStock = currentStock + qty;
@@ -991,7 +1069,7 @@ const AdminPanel = {
     if (!prod) return;
 
     const prevStock = prod.stockQuantity;
-    const newStock = parseInt(document.getElementById("adjust-new-stock").textContent) || 0;
+    const newStock = parseFloat(document.getElementById("adjust-new-stock").textContent) || 0;
     const reason = document.getElementById("adjust-reason").value;
     const notes = document.getElementById("adjust-notes").value.trim();
     const diff = newStock - prevStock;
@@ -1724,6 +1802,36 @@ const AdminPanel = {
         createdAt: new Date().toISOString()
       };
 
+      // Check shift window immediately if daily auto-disable is active
+      if (autoDisableEnabled && autoDisableType === "daily" && !isMaster) {
+        const now = new Date();
+        const currMins = now.getHours() * 60 + now.getMinutes();
+        const inParts = autoDisableDailyIn.split(":").map(Number);
+        const outParts = autoDisableDailyOut.split(":").map(Number);
+        const inMins = (inParts[0] || 0) * 60 + (inParts[1] || 0);
+        const outMins = (outParts[0] || 0) * 60 + (outParts[1] || 0);
+        let isWithin = inMins <= outMins ? (currMins >= inMins && currMins < outMins) : (currMins >= inMins || currMins < outMins);
+        
+        const formatTime12 = (tStr) => {
+          try {
+            const p = (tStr || "00:00").split(":").map(Number);
+            const h = p[0];
+            const ampm = h >= 12 ? "PM" : "AM";
+            const h12 = h % 12 || 12;
+            return `${String(h12).padStart(2, "0")}:${String(p[1] || 0).padStart(2, "0")} ${ampm}`;
+          } catch (e) { return tStr; }
+        };
+
+        if (!isWithin) {
+          payload.status = "disabled";
+          payload.autoDisableReason = `Outside daily shift window (${formatTime12(autoDisableDailyIn)} - ${formatTime12(autoDisableDailyOut)})`;
+          payload.autoDisabledAt = now.toISOString();
+        } else {
+          payload.autoDisableReason = null;
+          payload.autoDisabledAt = null;
+        }
+      }
+
       if (userId) {
         const existing = data.users.find(u => u.id === userId);
         if (existing) {
@@ -2321,13 +2429,21 @@ const AdminPanel = {
 
   confirmFactoryReset() {
     App.showConfirmModal(
-      "Factory Reset Laundry Demo Data?",
-      "All custom modifications will be reset to the original Laundry & Dry Cleaning seed data.",
-      () => {
-        StorageManager.resetToDefault();
-        Sound.playSuccess();
-        App.showToast("Reset completed. Reloading...", "info");
-        setTimeout(() => location.reload(), 600);
+      "Erase All System Data?",
+      "Warning: This will permanently wipe all services, categories, sales history, claim orders, inventory logs, and staff attendance. Only the master admin account will be retained. This action cannot be undone.",
+      async () => {
+        try {
+          await StorageManager.resetToDefault();
+          Sound.playSuccess();
+          App.showToast("All system data has been erased. Reloading...", "info");
+          setTimeout(() => location.reload(), 600);
+        } catch (e) {
+          // If server call fails, wipe local storage directly
+          StorageManager.save(SEED_DATA);
+          Sound.playSuccess();
+          App.showToast("Local data erased. Reloading...", "info");
+          setTimeout(() => location.reload(), 600);
+        }
       }
     );
   }

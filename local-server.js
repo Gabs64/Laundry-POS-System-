@@ -66,12 +66,34 @@ const CLEAN_SEED_DATA = {
 let cachedData = null;
 let lastUpdatedTimestamp = Date.now();
 
+function getStoreMinutesOfDay() {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(new Date());
+    let h = 0, m = 0;
+    for (const p of parts) {
+      if (p.type === 'hour') h = parseInt(p.value, 10);
+      if (p.type === 'minute') m = parseInt(p.value, 10);
+    }
+    if (h === 24) h = 0;
+    return h * 60 + m;
+  } catch (e) {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }
+}
+
 function checkAutoDisableUsers(dbData) {
   if (!dbData || !Array.isArray(dbData.users)) return false;
   let modified = false;
   const now = new Date();
   const currentIso = now.toISOString();
-  const currentMinutesOfDay = now.getHours() * 60 + now.getMinutes();
+  const currentMinutesOfDay = getStoreMinutesOfDay();
 
   const formatTime12 = (tStr) => {
     try {
@@ -90,7 +112,9 @@ function checkAutoDisableUsers(dbData) {
     // Admin & Master Admin cannot be auto-disabled
     if (u.isMaster || u.id === 'usr-admin' || u.role === 'ADMIN') return;
 
-    if (u.autoDisableEnabled) {
+    const isEnabled = u.autoDisableEnabled === true || u.autoDisableEnabled === 'true';
+
+    if (isEnabled) {
       if (u.autoDisableType === 'datetime' || (!u.autoDisableType && u.autoDisableAt)) {
         if (u.status === 'disabled') return;
         if (u.autoDisableAt) {
@@ -127,7 +151,7 @@ function checkAutoDisableUsers(dbData) {
 
         if (isWithinShift) {
           // If account was disabled by daily schedule, automatically re-enable when shift window opens!
-          if (u.status === 'disabled' && (!u.autoDisableReason || u.autoDisableReason.toLowerCase().includes('daily'))) {
+          if (u.status === 'disabled' && (!u.autoDisableReason || u.autoDisableReason.toLowerCase().includes('daily') || u.autoDisableReason.toLowerCase().includes('shift'))) {
             u.status = 'active';
             u.autoDisabledAt = null;
             u.autoDisableReason = null;
@@ -525,6 +549,11 @@ const server = http.createServer(async (req, res) => {
         }
 
         const dbData = loadServerData();
+        // Check real-time auto-disable before login verification
+        if (checkAutoDisableUsers(dbData)) {
+          saveServerData(dbData);
+        }
+
         const users = dbData.users || [];
         const user = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
 
@@ -589,6 +618,10 @@ const server = http.createServer(async (req, res) => {
         const raw = await readBody(req);
         const { userId, sessionId } = JSON.parse(raw);
         const dbData = loadServerData();
+        if (checkAutoDisableUsers(dbData)) {
+          saveServerData(dbData);
+        }
+
         const users = dbData.users || [];
         const user = users.find(u => u.id === userId || (userId && u.username === userId));
 
@@ -597,6 +630,9 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (user.status === 'disabled') {
+          user.activeSessionId = null;
+          user.isOnline = false;
+          saveServerData(dbData);
           const reason = user.autoDisableReason || 'Account disabled by Administrator.';
           return sendJson(res, 200, { success: false, active: false, reason: reason });
         }

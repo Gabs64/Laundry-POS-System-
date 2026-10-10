@@ -769,6 +769,67 @@
           return;
         }
 
+        // 1b. Real-time client evaluation for scheduled auto-disable (Daily Shift or Datetime)
+        const isEnabled = dbUser.autoDisableEnabled === true || dbUser.autoDisableEnabled === "true";
+        if (isEnabled && dbUser.status !== "disabled") {
+          const now = new Date();
+          const currMins = now.getHours() * 60 + now.getMinutes();
+          const formatTime12 = (tStr) => {
+            try {
+              const parts = (tStr || "00:00").split(":").map(Number);
+              const h = parts[0];
+              const m = parts[1] || 0;
+              const ampm = h >= 12 ? "PM" : "AM";
+              const h12 = h % 12 || 12;
+              return `${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+            } catch (e) {
+              return tStr;
+            }
+          };
+
+          if (dbUser.autoDisableType === "daily") {
+            const dailyInStr = dbUser.autoDisableDailyIn || "08:00";
+            const dailyOutStr = dbUser.autoDisableDailyOut || dbUser.autoDisableDailyTime || "17:00";
+            const inParts = dailyInStr.split(":").map(Number);
+            const outParts = dailyOutStr.split(":").map(Number);
+            const inMins = (inParts[0] || 0) * 60 + (inParts[1] || 0);
+            const outMins = (outParts[0] || 0) * 60 + (outParts[1] || 0);
+
+            let isWithinShift = false;
+            if (inMins <= outMins) {
+              isWithinShift = currMins >= inMins && currMins < outMins;
+            } else {
+              isWithinShift = currMins >= inMins || currMins < outMins;
+            }
+
+            if (!isWithinShift) {
+              const shiftLabel = `${formatTime12(dailyInStr)} - ${formatTime12(dailyOutStr)}`;
+              dbUser.status = "disabled";
+              dbUser.activeSessionId = null;
+              dbUser.lastHeartbeat = null;
+              dbUser.isOnline = false;
+              dbUser.autoDisabledAt = now.toISOString();
+              dbUser.autoDisableReason = `Outside daily shift window (${shiftLabel})`;
+              StorageManager.save(data);
+              this.showTimeoutModal(null, `Your daily shift has ended (${formatTime12(dailyOutStr)}). You have been automatically clocked out.`, "Daily Shift Ended");
+              return;
+            }
+          } else if (dbUser.autoDisableAt) {
+            const disableTime = new Date(dbUser.autoDisableAt).getTime();
+            if (!isNaN(disableTime) && Date.now() >= disableTime) {
+              dbUser.status = "disabled";
+              dbUser.activeSessionId = null;
+              dbUser.lastHeartbeat = null;
+              dbUser.isOnline = false;
+              dbUser.autoDisabledAt = now.toISOString();
+              dbUser.autoDisableReason = `Scheduled auto-disable time reached (${new Date(dbUser.autoDisableAt).toLocaleString()})`;
+              StorageManager.save(data);
+              this.showTimeoutModal(null, dbUser.autoDisableReason, "Shift Auto-Disabled");
+              return;
+            }
+          }
+        }
+
         if (dbUser.status === "disabled") {
           const reason = dbUser.autoDisableReason || "Your staff account has been deactivated by the Administrator.";
           this.showTimeoutModal(null, reason, "Account Deactivated");
