@@ -4740,18 +4740,19 @@ img {
 }
 
 .modal-barcode-detector-dialog {
-  max-width: 660px;
-  width: 95%;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 680px;
+  width: 94%;
+  max-height: 88vh;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .modal-icon-badge {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  border: 1px solid rgba(99, 102, 241, 0.35);
   color: #818cf8;
   display: flex;
   align-items: center;
@@ -4767,21 +4768,187 @@ img {
   font-weight: 400;
 }
 
+/* Hero Scanner Input Bar */
+.barcode-hero-scanner {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.04) 100%);
+  border: 1.5px solid rgba(99, 102, 241, 0.28);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.15rem;
+  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.08);
+  transition: all 0.2s ease;
+}
+
+.barcode-hero-scanner:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 24px -4px rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.06) 100%);
+}
+
+.scanner-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.barcode-hero-scanner:focus-within .scanner-input-box {
+  border-color: rgba(99, 102, 241, 0.6);
+  background: var(--bg-surface-elevated);
+}
+
+.scanner-input-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #818cf8;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.scanner-input-icon i,
+.scanner-input-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.barcode-detector-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0;
+}
+
+.barcode-detector-input::placeholder {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: normal;
+}
+
+.scanner-enter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.scanner-helper-info {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.scanner-helper-info .helper-icon {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+/* Quick Detergent & Supplies Presets */
+.barcode-presets-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+}
+
+.presets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.55rem;
+}
+
+.presets-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.presets-label i,
+.presets-label svg {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+}
+
+.barcode-presets-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.preset-barcode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.preset-barcode-chip:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.preset-barcode-chip:active {
+  transform: translateY(0);
+}
+
+/* Collapsible Camera Card */
 .scanner-camera-card {
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .camera-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.55rem 0.85rem;
-  border-bottom: 1px solid var(--border-color);
-  background: rgba(0, 0, 0, 0.15);
+  padding: 0.65rem 0.95rem;
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .camera-status-pill {
@@ -4825,6 +4992,7 @@ img {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border-top: 1px solid var(--border-color);
 }
 
 .barcode-camera-stream {
@@ -4880,82 +5048,7 @@ img {
 .reticle-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 4px; }
 .reticle-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 4px; }
 
-.camera-standby-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--text-muted);
-  gap: 0.4rem;
-  padding: 1rem;
-}
-
-.camera-standby-placeholder .standby-icon {
-  width: 42px;
-  height: 42px;
-  stroke-width: 1.5;
-  opacity: 0.5;
-  color: #818cf8;
-}
-
-.camera-standby-placeholder p {
-  font-size: 0.85rem;
-  max-width: 320px;
-  margin: 0;
-}
-
-.barcode-input-section .form-label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.4rem;
-  font-size: 0.85rem;
-}
-
-.auto-reflect-toggle-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  cursor: pointer;
-  user-select: none;
-  color: var(--text-main);
-  padding: 0.2rem 0;
-}
-
-.barcode-presets-section .presets-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.barcode-presets-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.35rem;
-}
-
-.preset-barcode-chip {
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-full);
-  padding: 0.28rem 0.65rem;
-  font-size: 0.76rem;
-  font-weight: 500;
-  color: var(--text-main);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.preset-barcode-chip:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: #6366f1;
-  color: #818cf8;
-  transform: translateY(-1px);
-}
-
+/* Loader & Result Display */
 .barcode-searching-loader {
   display: flex;
   align-items: center;
@@ -4991,53 +5084,63 @@ img {
 
 .detected-product-card {
   background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-color);
+  border: 1.5px solid rgba(34, 197, 94, 0.4);
   border-radius: var(--radius-lg);
-  padding: 0.9rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 1rem 1.15rem;
+  box-shadow: 0 8px 24px -4px rgba(34, 197, 94, 0.15);
+  animation: slideDownIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDownIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .detected-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.7rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .badge-source {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 0.15rem 0.55rem;
+  padding: 0.2rem 0.55rem;
   border-radius: var(--radius-full);
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .badge-brand {
-  background: rgba(14, 165, 233, 0.18);
-  color: #0284c7;
-  border: 1px solid rgba(14, 165, 233, 0.35);
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 0.15rem 0.55rem;
+  padding: 0.2rem 0.55rem;
   border-radius: var(--radius-full);
-  letter-spacing: 0.2px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
 .detected-barcode-pill {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.76rem;
-  background: var(--bg-app);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-color);
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
   color: var(--text-muted);
 }
 
 .detected-card-body {
   display: flex;
-  gap: 0.9rem;
+  gap: 1rem;
   align-items: flex-start;
 }
 
@@ -5046,7 +5149,7 @@ img {
   height: 90px;
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--bg-app);
+  background: #000;
   border: 1px solid var(--border-color);
   flex-shrink: 0;
 }
@@ -5060,27 +5163,6 @@ img {
 .detected-info-form {
   flex: 1;
   min-width: 0;
-}
-
-.barcode-scanner-bar {
-  position: relative;
-  width: 100%;
-}
-
-.barcode-scanner-bar input {
-  width: 100%;
-  font-size: 0.95rem;
-  padding: 0.65rem 0.95rem;
-  border-radius: var(--radius-md);
-  border: 1.5px solid var(--border-color);
-  background: var(--bg-surface);
-  transition: all 0.2s ease;
-}
-
-.barcode-scanner-bar input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
-  outline: none;
 }
 
 .qty-stepper-row {
@@ -5126,5 +5208,6 @@ img {
 .row-highlight-flash {
   animation: rowGlowHighlight 2.8s ease-out;
 }
+
 
 

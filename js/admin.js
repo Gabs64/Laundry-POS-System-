@@ -1388,24 +1388,30 @@ const AdminPanel = {
     const flipBtn = document.getElementById("btn-flip-camera");
     const laser = document.getElementById("scanner-laser-line");
     const reticle = document.getElementById("scanner-reticle");
-    const placeholder = document.getElementById("camera-standby-placeholder");
+    const viewport = document.getElementById("camera-viewport-wrapper");
 
     if (isActive) {
+      if (viewport) viewport.style.display = "flex";
       if (pill) pill.classList.add("active");
       if (statusText) statusText.textContent = text || "Scanning Active";
-      if (toggleBtn) toggleBtn.innerHTML = `<i data-lucide="square"></i> Stop Camera`;
+      if (toggleBtn) {
+        toggleBtn.className = "btn btn-sm btn-danger";
+        toggleBtn.innerHTML = `<i data-lucide="square"></i> Stop Camera`;
+      }
       if (flipBtn) flipBtn.style.display = "inline-flex";
       if (laser) laser.style.display = "block";
       if (reticle) reticle.style.display = "block";
-      if (placeholder) placeholder.style.display = "none";
     } else {
+      if (viewport) viewport.style.display = "none";
       if (pill) pill.classList.remove("active");
-      if (statusText) statusText.textContent = text || "Camera Standby";
-      if (toggleBtn) toggleBtn.innerHTML = `<i data-lucide="camera"></i> Start Camera`;
+      if (statusText) statusText.textContent = text || "Device Webcam / Camera";
+      if (toggleBtn) {
+        toggleBtn.className = "btn btn-sm btn-secondary";
+        toggleBtn.innerHTML = `<i data-lucide="camera"></i> Start Camera`;
+      }
       if (flipBtn) flipBtn.style.display = "none";
       if (laser) laser.style.display = "none";
       if (reticle) reticle.style.display = "none";
-      if (placeholder) placeholder.style.display = "flex";
     }
     if (window.lucide) lucide.createIcons();
   },

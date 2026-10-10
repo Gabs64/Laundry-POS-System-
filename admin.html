@@ -1412,89 +1412,22 @@
       </div>
 
       <div class="modal-body">
-        <!-- Live Scanner Viewport & Camera Controls -->
-        <div class="scanner-camera-card">
-          <div class="camera-card-header">
-            <div class="camera-status-pill" id="camera-status-pill">
-              <span class="status-dot"></span>
-              <span id="camera-status-text">Camera Standby</span>
+        <!-- Hero Barcode Scanner Input Bar -->
+        <div class="barcode-hero-scanner">
+          <div class="scanner-input-box">
+            <div class="scanner-input-icon">
+              <i data-lucide="scan-line"></i>
             </div>
-            <div class="camera-actions-row">
-              <button type="button" class="btn btn-sm btn-secondary" id="btn-toggle-camera" onclick="AdminPanel.toggleBarcodeCamera()">
-                <i data-lucide="camera"></i> Start Camera
-              </button>
-              <button type="button" class="btn btn-sm btn-secondary" id="btn-flip-camera" onclick="AdminPanel.flipBarcodeCamera()" style="display:none;">
-                <i data-lucide="refresh-cw"></i> Flip
-              </button>
-            </div>
-          </div>
-
-          <div class="camera-viewport-wrapper" id="camera-viewport-wrapper">
-            <video id="barcode-native-video" playsinline muted autoplay style="display:none; width:100%; height:100%; object-fit:cover;"></video>
-            <div id="barcode-camera-stream" class="barcode-camera-stream"></div>
-            <!-- Laser overlay line animation -->
-            <div class="scanner-laser-line" id="scanner-laser-line" style="display:none;"></div>
-            <div class="scanner-reticle" id="scanner-reticle" style="display:none;">
-              <span class="reticle-corner tl"></span>
-              <span class="reticle-corner tr"></span>
-              <span class="reticle-corner bl"></span>
-              <span class="reticle-corner br"></span>
-            </div>
-            <!-- Standby placeholder before camera starts -->
-            <div class="camera-standby-placeholder" id="camera-standby-placeholder">
-              <i data-lucide="scan" class="standby-icon"></i>
-              <p>Camera ready. Click <b>"Start Camera"</b> or scan with a USB barcode gun.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Manual / Handheld Scanner Input Bar -->
-        <div class="barcode-input-section mt-3">
-          <label for="barcode-detector-input" class="form-label font-bold">
-            <i data-lucide="barcode"></i> Barcode Number (USB Gun Scanner / Press Enter)
-          </label>
-          <div class="barcode-scanner-bar">
-            <input type="text" id="barcode-detector-input" class="form-control"
-              placeholder="Scan barcode with scanner gun or type number and press Enter..."
+            <input type="text" id="barcode-detector-input" class="barcode-detector-input"
+              placeholder="Scan barcode with gun scanner or type number..."
               autocomplete="off"
               onkeydown="if(event.key==='Enter'){ event.preventDefault(); AdminPanel.triggerBarcodeSearch(); }"
               oninput="if(this.value && this.value.trim().length >= 12){ AdminPanel.triggerBarcodeDebounced(); }">
+            <span class="scanner-enter-badge">Press ↵ Enter</span>
           </div>
-        </div>
-
-        <!-- Quick Detergent & Supplies Test Presets -->
-        <div class="barcode-presets-section mt-3">
-          <div class="presets-label">
-            <span>✨ Quick Presets (Click to Test):</span>
-          </div>
-          <div class="barcode-presets-grid">
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('8934868113034')">
-              🫧 Breeze Liquid Detergent (8934868113034)
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092330052')">
-              🧺 Ariel Powder Detergent
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092113228')">
-              🧼 Tide Powder Detergent
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4902430730006')">
-              🌸 Downy Fabric Conditioner
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('8710447385555')">
-              🌺 Surf Powder Detergent
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800888123456')">
-              🫧 Breeze Powder Detergent
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800119223344')">
-              ✨ Zonrox Bleach
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800555112233')">
-              ⭐ Pride Powder Detergent
-            </button>
-            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('037000806497')">
-              🌿 Gain Detergent Pods
-            </button>
+          <div class="scanner-helper-info">
+            <i data-lucide="zap" class="helper-icon"></i>
+            <span>Point USB scanner gun at barcode, or type number and press Enter.</span>
           </div>
         </div>
 
@@ -1578,6 +1511,72 @@
             <button type="button" class="btn btn-secondary" onclick="AdminPanel.resetForNextScan()">
               <i data-lucide="scan-barcode"></i> Scan Next Item
             </button>
+          </div>
+        </div>
+
+        <!-- Quick Detergent & Supplies Test Presets -->
+        <div class="barcode-presets-section mt-3">
+          <div class="presets-header">
+            <span class="presets-label"><i data-lucide="sparkles"></i> Quick Presets (Click to Test):</span>
+          </div>
+          <div class="barcode-presets-grid">
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('8934868113034')">
+              🫧 Breeze Liquid
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092330052')">
+              🧺 Ariel Powder
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800092113228')">
+              🧼 Tide Powder
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4902430730006')">
+              🌸 Downy Fabcon
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('8710447385555')">
+              🌺 Surf Powder
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800888123456')">
+              🫧 Breeze Powder
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800119223344')">
+              ✨ Zonrox Bleach
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('4800555112233')">
+              ⭐ Pride Powder
+            </button>
+            <button type="button" class="preset-barcode-chip" onclick="AdminPanel.testScanPreset('037000806497')">
+              🌿 Gain Pods
+            </button>
+          </div>
+        </div>
+
+        <!-- Optional Collapsible Camera Viewport -->
+        <div class="scanner-camera-card mt-3">
+          <div class="camera-card-header">
+            <div class="camera-status-pill" id="camera-status-pill">
+              <span class="status-dot"></span>
+              <span id="camera-status-text">Device Webcam / Camera</span>
+            </div>
+            <div class="camera-actions-row">
+              <button type="button" class="btn btn-sm btn-secondary" id="btn-toggle-camera" onclick="AdminPanel.toggleBarcodeCamera()">
+                <i data-lucide="camera"></i> Start Camera
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btn-flip-camera" onclick="AdminPanel.flipBarcodeCamera()" style="display:none;">
+                <i data-lucide="refresh-cw"></i> Flip
+              </button>
+            </div>
+          </div>
+
+          <div class="camera-viewport-wrapper" id="camera-viewport-wrapper" style="display:none;">
+            <video id="barcode-native-video" playsinline muted autoplay style="display:none; width:100%; height:100%; object-fit:cover;"></video>
+            <div id="barcode-camera-stream" class="barcode-camera-stream"></div>
+            <div class="scanner-laser-line" id="scanner-laser-line" style="display:none;"></div>
+            <div class="scanner-reticle" id="scanner-reticle" style="display:none;">
+              <span class="reticle-corner tl"></span>
+              <span class="reticle-corner tr"></span>
+              <span class="reticle-corner bl"></span>
+              <span class="reticle-corner br"></span>
+            </div>
           </div>
         </div>
       </div>
