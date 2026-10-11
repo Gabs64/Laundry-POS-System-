@@ -1138,7 +1138,7 @@ const server = http.createServer(async (req, res) => {
     } else {
       res.writeHead(200, {
         'Content-Type': contentType,
-        'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
       });
       res.end(content);
     }

@@ -18,10 +18,19 @@
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=3.0">
 </head>
 
 <body class="login-page-body">
+
+  <!-- Fullscreen Animated Ambient Mesh Background -->
+  <div class="login-bg-mesh" aria-hidden="true">
+    <div class="mesh-orb orb-1"></div>
+    <div class="mesh-orb orb-2"></div>
+    <div class="mesh-orb orb-3"></div>
+    <div class="mesh-orb orb-4"></div>
+    <div class="mesh-grid"></div>
+  </div>
 
   <div class="login-backdrop">
     <div class="login-glass-card">
@@ -45,7 +54,10 @@
         <div class="form-group">
           <label for="login-password"><i data-lucide="lock"></i> Password</label>
           <div class="input-with-icon">
-            <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required>
+            <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required style="padding-right: 2.75rem;">
+            <button type="button" id="btn-toggle-password" class="password-toggle-btn" aria-label="Toggle password visibility" tabindex="-1">
+              <i data-lucide="eye" id="toggle-password-icon"></i>
+            </button>
           </div>
         </div>
 
@@ -111,6 +123,20 @@
             e.preventDefault();
             e.stopPropagation();
             this.handleLogin(e);
+          });
+        }
+
+        const toggleBtn = document.getElementById("btn-toggle-password");
+        const passInput = document.getElementById("login-password");
+        if (toggleBtn && passInput) {
+          toggleBtn.addEventListener("click", () => {
+            const isPass = passInput.type === "password";
+            passInput.type = isPass ? "text" : "password";
+            const icon = document.getElementById("toggle-password-icon");
+            if (icon) {
+              icon.setAttribute("data-lucide", isPass ? "eye-off" : "eye");
+              if (window.lucide) lucide.createIcons();
+            }
           });
         }
 
