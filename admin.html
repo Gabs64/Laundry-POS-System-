@@ -21,7 +21,7 @@
   <!-- HTML5 QR Code / Barcode Scanner CDN -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=3.2">
 </head>
 
 <body class="admin-body">
@@ -1568,8 +1568,8 @@
           </div>
 
           <div class="camera-viewport-wrapper" id="camera-viewport-wrapper" style="display:none;">
-            <video id="barcode-native-video" playsinline muted autoplay style="display:none; width:100%; height:100%; object-fit:cover;"></video>
-            <div id="barcode-camera-stream" class="barcode-camera-stream"></div>
+            <video id="barcode-native-video" playsinline muted autoplay style="display:none;"></video>
+            <div id="barcode-camera-stream" class="barcode-camera-stream" style="display:none;"></div>
             <div class="scanner-laser-line" id="scanner-laser-line" style="display:none;"></div>
             <div class="scanner-reticle" id="scanner-reticle" style="display:none;">
               <span class="reticle-corner tl"></span>
@@ -1597,7 +1597,7 @@
   <script src="js/data.js"></script>
   <script src="js/sound.js"></script>
   <script src="js/pos.js"></script>
-  <script src="js/admin.js"></script>
+  <script src="js/admin.js?v=3.2"></script>
   <script>
     const AdminSite = {
       currentUser: null,

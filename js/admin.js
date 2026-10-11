@@ -1445,9 +1445,14 @@ const AdminPanel = {
 
         this._mediaStream = stream;
         const nativeVideo = document.getElementById("barcode-native-video");
+        const streamContainer = document.getElementById("barcode-camera-stream");
         if (nativeVideo) {
           nativeVideo.srcObject = stream;
           nativeVideo.style.display = "block";
+          if (streamContainer) {
+            streamContainer.style.display = "none";
+            streamContainer.innerHTML = "";
+          }
           await nativeVideo.play();
 
           // Throttled detection loop (every 220ms - prevents CPU freeze)
@@ -1476,7 +1481,14 @@ const AdminPanel = {
 
     // 2. Fallback to Html5Qrcode library
     const streamContainer = document.getElementById("barcode-camera-stream");
+    const nativeVideo = document.getElementById("barcode-native-video");
+    if (nativeVideo) {
+      nativeVideo.style.display = "none";
+      nativeVideo.pause();
+      nativeVideo.srcObject = null;
+    }
     if (!streamContainer) return;
+    streamContainer.style.display = "flex";
     streamContainer.innerHTML = "";
 
     if (typeof Html5Qrcode === "undefined") {
@@ -1546,7 +1558,10 @@ const AdminPanel = {
     }
 
     const streamContainer = document.getElementById("barcode-camera-stream");
-    if (streamContainer) streamContainer.innerHTML = "";
+    if (streamContainer) {
+      streamContainer.innerHTML = "";
+      streamContainer.style.display = "none";
+    }
 
     this._barcodeCameraActive = false;
     this.updateCameraStatusUI(false, "Camera Standby");

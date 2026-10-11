@@ -4995,26 +4995,47 @@ img {
 .camera-viewport-wrapper {
   position: relative;
   width: 100%;
-  height: 220px;
-  background: #050811;
+  height: 260px;
+  background: #000000;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#barcode-native-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover !important;
+  z-index: 1;
+}
+
+.barcode-camera-stream {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-top: 1px solid var(--border-color);
+  z-index: 1;
 }
 
-.barcode-camera-stream {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.barcode-camera-stream video {
+.barcode-camera-stream video,
+.barcode-camera-stream canvas {
   width: 100% !important;
   height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
   object-fit: cover !important;
   border-radius: 0;
 }
@@ -5040,7 +5061,9 @@ img {
 .scanner-reticle {
   position: absolute;
   width: 220px;
-  height: 120px;
+  height: 130px;
+  max-width: 80%;
+  max-height: 70%;
   pointer-events: none;
   z-index: 9;
 }
